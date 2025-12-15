@@ -1,0 +1,184 @@
+# Claude Agent Rules for UFO Dataset Explorer
+
+## Agent Behavior Guidelines
+
+### General Principles
+- Always prioritize user intent and clarity
+- Provide helpful, accurate information about the dataset
+- Follow the project's code style and conventions
+- Maintain consistency with existing codebase patterns
+- Document decisions and rationale when making significant changes
+
+### Dataset Handling Rules
+
+1. **Data Integrity**
+   - Never modify the original dataset without explicit user permission
+   - Always validate data before processing
+   - Handle missing or malformed data gracefully
+   - Preserve data types and structure when transforming data
+
+2. **Dataset Access**
+   - Support both local file access and Hugging Face API access
+   - Prefer API access for real-time queries when possible
+   - Use local files for bulk operations or offline access
+   - Always handle large datasets efficiently (streaming, pagination)
+
+3. **Query Operations**
+   - Implement efficient filtering and search
+   - Support pagination for large result sets
+   - Cache frequently accessed data when appropriate
+   - Document query performance characteristics
+
+### API Interaction Patterns
+
+1. **Endpoint Design**
+   - Use RESTful conventions where appropriate
+   - Return consistent response formats
+   - Include proper error handling and status codes
+   - Document all API endpoints
+
+2. **Request/Response Handling**
+   - Validate all input parameters
+   - Return meaningful error messages
+   - Use TypeScript types for request/response schemas
+   - Handle edge cases gracefully
+
+3. **Performance**
+   - Implement caching strategies where beneficial
+   - Optimize database/API queries
+   - Use streaming for large responses
+   - Monitor and log performance metrics
+
+### MCP Server Guidelines
+
+1. **Tool Implementation**
+   - Implement MCP tools as separate, testable functions
+   - Follow MCP protocol specifications
+   - Return proper MCP response structures
+   - Handle tool errors appropriately
+
+2. **Vercel Integration**
+   - Use Vercel's MCP handler pattern
+   - Ensure serverless function compatibility
+   - Handle cold starts efficiently
+   - Follow Vercel deployment best practices
+
+### AnswerAgent Integration
+
+1. **Connection Patterns**
+   - Establish clear integration points
+   - Document connection protocols
+   - Handle connection errors gracefully
+   - Maintain separation of concerns
+
+2. **Data Flow**
+   - Define clear data exchange formats
+   - Validate data at integration boundaries
+   - Log integration events for debugging
+   - Handle async operations properly
+
+### Code Quality Standards
+
+1. **TypeScript Usage**
+   - Use strict TypeScript settings
+   - Avoid `any` types
+   - Use proper type definitions
+   - Leverage TypeScript features (generics, utility types)
+
+2. **Error Handling**
+   - Always handle errors explicitly
+   - Provide meaningful error messages
+   - Log errors appropriately
+   - Never silently fail
+
+3. **Testing Considerations**
+   - Write testable code
+   - Consider edge cases
+   - Document expected behavior
+   - Make functions pure when possible
+
+### Documentation Requirements
+
+1. **Code Documentation**
+   - Document complex functions and algorithms
+   - Explain non-obvious decisions
+   - Include usage examples for utilities
+   - Keep documentation up to date
+
+2. **API Documentation**
+   - Document all endpoints
+   - Include request/response examples
+   - Document error cases
+   - Keep API docs synchronized with code
+
+## CRITICAL: Rule Modification Protocol
+
+**IMPORTANT**: Before making ANY changes to this `.claude-rules` file or the `.cursorrules` file:
+
+1. **ALWAYS** prompt the user first with:
+   - What rule you want to add, modify, or remove
+   - Why the change is needed
+   - What impact it will have on agent behavior
+   - Examples of how the change would affect interactions
+
+2. **NEVER** modify rules files without explicit user approval
+
+3. If the user requests a rule change:
+   - Implement it exactly as approved
+   - Update related documentation if needed
+   - Test that the change works as intended
+
+4. Document any rule changes in commit messages with clear rationale
+
+This protocol ensures that rule modifications are intentional, well-considered, and approved by the project maintainer. Rule changes can significantly affect how the agent behaves, so they must be carefully evaluated.
+
+## Development Environment Setup
+
+1. **Node.js Version Management**
+   - This project requires Node.js 24
+   - Always run `nvm use` before starting development
+   - The `.nvmrc` file specifies the required Node.js version
+   - If Node.js 24 is not installed, run `nvm install 24` first
+   - Verify the correct version with `node -v` after running `nvm use`
+
+2. **Environment Setup Checklist**
+   - Run `nvm use` to switch to Node.js 24
+   - Run `npm install` to install dependencies
+   - Set up environment variables (`.env.local`)
+   - (Optional) Download dataset with `npm run download-dataset`
+
+## User Interaction Guidelines
+
+1. **Clarity**
+   - Ask for clarification when requirements are ambiguous
+   - Suggest alternatives when appropriate
+   - Explain technical decisions when relevant
+
+2. **Efficiency**
+   - Batch related operations when possible
+   - Suggest optimizations when appropriate
+   - Avoid unnecessary work
+
+3. **Safety**
+   - Warn about destructive operations
+   - Confirm before making significant changes
+   - Preserve existing functionality when modifying code
+
+## Next.js 16 Specific Guidelines
+
+- Use Server Components by default
+- Mark Client Components explicitly
+- Use proper data fetching patterns
+- Follow Next.js caching strategies
+- Optimize for serverless deployment
+- Use Route Handlers for API endpoints
+
+## Dataset-Specific Guidelines
+
+- Respect the dataset's structure and schema
+- Handle the ~327k records efficiently
+- Support filtering by all available fields
+- Implement semantic search capabilities
+- Cache cluster information when appropriate
+- Document data access patterns clearly
+

@@ -1,0 +1,36 @@
+import type { Metadata } from "next";
+import React from "react";
+import { IBM_Plex_Sans } from "next/font/google";
+import "./globals.css";
+// Import AG Grid styles early to ensure proper load order and prevent Tailwind overrides
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-quartz.css";
+import "./styles/ag-grid.css";
+import GlobalNav from "./components/GlobalNav";
+
+const ibmPlexSans = IBM_Plex_Sans({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-ibm-plex-sans",
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  title: "UFO Dataset Explorer",
+  description: "Explore UFO sightings dataset from Hugging Face",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" className={ibmPlexSans.variable}>
+      <body>
+        <GlobalNav />
+        <div className="pt-14">{children}</div>
+      </body>
+    </html>
+  );
+}

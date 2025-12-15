@@ -1,0 +1,137 @@
+# Cursor Rules for UFO Dataset Explorer
+
+## Project Context
+
+This is a Next.js 16 application for exploring the UFO sightings dataset from Hugging Face (cjc0013/Ufo_data_clustered). The project includes:
+- Frontend interface built with Next.js 16 App Router
+- API endpoints for dataset queries
+- MCP server using Vercel handler pattern
+- AnswerAgent integration
+- Support for both local dataset files and Hugging Face API access
+
+## Project Structure
+
+```
+uap/
+├── app/                    # Next.js 16 App Router
+│   ├── api/               # API routes
+│   ├── components/        # React components
+│   └── lib/               # Utility libraries
+├── docs/                   # Documentation
+├── scripts/               # Utility scripts
+└── [config files]
+```
+
+## Code Style Guidelines
+
+### TypeScript
+- Use TypeScript for all code files
+- Prefer explicit types over `any`
+- Use interfaces for object shapes
+- Use enums for fixed sets of values
+
+### Next.js 16 Specific
+- Use App Router (app/ directory)
+- Use Server Components by default
+- Mark Client Components with 'use client' directive
+- Use async/await for data fetching in Server Components
+- Use Route Handlers for API endpoints (app/api/)
+- Follow Next.js 16 conventions for caching and data fetching
+
+### React Components
+- Use functional components with hooks
+- Prefer named exports for components
+- Keep components focused and single-purpose
+- Extract reusable logic into custom hooks
+- Use TypeScript for component props
+
+### API Routes
+- Use Route Handlers (route.ts files)
+- Return proper HTTP status codes
+- Handle errors gracefully with try/catch
+- Validate input parameters
+- Use NextResponse for responses
+
+### MCP Server Patterns
+- Follow Vercel's MCP handler pattern
+- Implement tools as separate functions
+- Use proper MCP protocol structures
+- Handle errors and return appropriate responses
+
+## File Naming Conventions
+
+- Components: PascalCase (e.g., `DatasetExplorer.tsx`)
+- Utilities: camelCase (e.g., `dataset.ts`)
+- API routes: `route.ts` in appropriate directories
+- Config files: lowercase with extensions (e.g., `next.config.js`)
+
+## Import Organization
+
+1. React and Next.js imports
+2. Third-party library imports
+3. Internal component imports
+4. Utility/helper imports
+5. Type imports (use `import type` when possible)
+
+## Error Handling
+
+- Always use try/catch blocks for async operations
+- Return meaningful error messages
+- Log errors appropriately
+- Use proper HTTP status codes in API routes
+
+## Dataset Access
+
+- Support both local file access and Hugging Face API
+- Always handle large datasets efficiently (pagination, streaming)
+- Cache dataset metadata when appropriate
+- Document data access patterns
+
+## CRITICAL: Rule Modification Protocol
+
+**IMPORTANT**: Before making ANY changes to this `.cursorrules` file or the `.claude-rules` file:
+
+1. **ALWAYS** prompt the user first with:
+   - What rule you want to add, modify, or remove
+   - Why the change is needed
+   - What impact it will have
+
+2. **NEVER** modify rules files without explicit user approval
+
+3. If the user requests a rule change, implement it exactly as approved
+
+4. Document any rule changes in commit messages
+
+This protocol ensures that rule modifications are intentional and approved by the project maintainer.
+
+## Best Practices
+
+- Write self-documenting code with clear variable names
+- Add comments for complex logic
+- Keep functions small and focused
+- Avoid premature optimization
+- Test API endpoints and components
+- Follow Next.js 16 best practices for performance
+
+## Environment Variables
+
+- Use `.env.local` for local development
+- Document required environment variables in README
+- Never commit sensitive credentials
+- Use proper variable naming (UPPER_SNAKE_CASE)
+- **CRITICAL**: Maintain `env.template` file - whenever adding, removing, or modifying environment variables:
+  - Update `env.template` with the new variable (with placeholder value and comments)
+  - Include whether the variable is required or optional
+  - Add brief description of what the variable is used for
+  - Document default values if applicable
+  - When removing a variable, remove it from `env.template` as well
+  - Search the codebase for `process.env.` usage to ensure all variables are documented
+
+## Development Environment
+
+- **Node.js Version**: This project requires Node.js 24
+- **Before starting**: Always run `nvm use` to ensure the correct Node.js version
+- The `.nvmrc` file specifies Node.js 24.0.0
+- Verify version with `node -v` after running `nvm use`
+- If Node.js 24 is not installed, run `nvm install 24` first
+
