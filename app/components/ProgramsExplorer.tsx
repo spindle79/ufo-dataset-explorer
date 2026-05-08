@@ -1,11 +1,11 @@
 "use client";
 
-import ProgramsDataTable from "./ProgramsDataTable";
+import ProgramsViewer from "./ProgramsViewer";
 
 export default function ProgramsExplorer() {
   return (
     <div className="space-y-6">
-      <ProgramsDataTable initialLimit={50} />
+      <ProgramsViewer />
     </div>
   );
 }

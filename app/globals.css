@@ -200,6 +200,9 @@ body {
   border-radius: 5px;
 }
 
+/* Table Padding - Based on view mode */
+/* Standard pattern (ImageViewer, ScrapeViewer, PdfViewer, AudioViewer, VideoViewer) */
+
 /* AG Grid Quartz Theme - Uses IBM Plex Sans font if available */
 /* The Quartz theme is AG Grid's default theme with high contrast and generous padding */
 /* AG Grid styles are imported in app/styles/ag-grid.css and loaded in layout.tsx */

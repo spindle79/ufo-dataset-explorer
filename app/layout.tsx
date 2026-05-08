@@ -2,11 +2,8 @@ import type { Metadata } from "next";
 import React from "react";
 import { IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
-// Import AG Grid styles early to ensure proper load order and prevent Tailwind overrides
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-quartz.css";
-import "./styles/ag-grid.css";
 import GlobalNav from "./components/GlobalNav";
+import { Providers } from "./providers";
 
 const ibmPlexSans = IBM_Plex_Sans({
   weight: ["400", "500", "600", "700"],
@@ -28,8 +25,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={ibmPlexSans.variable}>
       <body>
-        <GlobalNav />
-        <div className="pt-14">{children}</div>
+        <Providers>
+          <GlobalNav />
+          <div className="pt-14">{children}</div>
+        </Providers>
       </body>
     </html>
   );

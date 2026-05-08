@@ -16,6 +16,22 @@ export async function GET(
       );
     }
 
+    // Check if file is discovered but not yet processed
+    const isPlaceholderPath =
+      imageFile.filePath && imageFile.filePath.startsWith("discovered/");
+    const isDiscoveredStatus = imageFile.status === "discovered";
+
+    if (isPlaceholderPath || isDiscoveredStatus) {
+      return NextResponse.json(
+        {
+          error: "Image file has been discovered but not yet processed. Please process the file first.",
+          status: imageFile.status,
+          needsProcessing: true,
+        },
+        { status: 404 }
+      );
+    }
+
     const buffer = await getImageFileBuffer(id);
     if (!buffer) {
       return NextResponse.json(
@@ -24,7 +40,7 @@ export async function GET(
       );
     }
 
-    return new NextResponse(buffer, {
+    return new NextResponse(buffer as any, {
       headers: {
         "Content-Type": imageFile.mimeType || "image/jpeg",
         "Content-Length": buffer.length.toString(),

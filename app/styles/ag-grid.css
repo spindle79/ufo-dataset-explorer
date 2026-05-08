@@ -4,26 +4,9 @@
 /* Ensure AG Grid styles are not overridden by Tailwind */
 @layer base {
   /* Prevent Tailwind reset from affecting AG Grid */
-  .ag-theme-quartz,
-  .ag-theme-quartz * {
+  .ag-grid,
+  .ag-grid * {
     box-sizing: border-box;
-  }
-}
-
-/* AG Grid theme customizations */
-.ag-theme-quartz {
-  /* Use IBM Plex Sans font if available, fallback to AG Grid default */
-  --ag-font-family: var(--font-ibm-plex-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif);
-  
-  /* Ensure proper font rendering */
-  font-family: var(--ag-font-family);
-}
-
-/* Dark mode support for AG Grid */
-@media (prefers-color-scheme: dark) {
-  .ag-theme-quartz {
-    /* AG Grid Quartz theme supports dark mode via data-color-scheme attribute */
-    /* You can also override CSS variables here if needed */
   }
 }
 

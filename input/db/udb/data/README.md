@@ -4,9 +4,9 @@ This directory should contain the U.RND database file for the Larry Hatch UFO da
 
 ## File Location
 
-Place the U.RND file here:
+Place the U.RND file here, relative to the repository root:
 ```
-/Users/adamharris/Documents/repos/uap/input/db/udb/data/U.RND
+input/db/udb/data/U.RND
 ```
 
 ## Alternative: Use NUFORC Database

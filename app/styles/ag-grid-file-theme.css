@@ -1,0 +1,292 @@
+/* Custom AG Grid theme for File Tables */
+/* Matches the design of our custom HTML tables */
+/* Using Theming API with CSS custom properties (--ag- prefix) */
+/* References: 
+   - https://www.ag-grid.com/javascript-data-grid/theming-css/
+   - https://www.ag-grid.com/javascript-data-grid/theming-colors/
+*/
+
+.ag-theme-file-table,
+.ag-theme-file-table[data-ag-theme-mode="dark"],
+[data-ag-theme-mode="dark"] .ag-theme-file-table {
+  /* Default to dark theme to match our other tables */
+  /* CSS custom properties are inherited by child elements per AG Grid docs */
+  --ag-background-color: rgb(17 24 39) !important; /* dark:bg-gray-900 */
+  --ag-header-background-color: rgb(31 41 55) !important; /* dark:bg-gray-800 */
+  --ag-odd-row-background-color: rgb(17 24 39) !important; /* dark:bg-gray-900 */
+  --ag-even-row-background-color: rgb(17 24 39) !important; /* dark:bg-gray-900 */
+  --ag-row-hover-color: rgb(31 41 55) !important; /* dark:hover:bg-gray-800 */
+  --ag-border-color: rgb(55 65 81) !important; /* dark:divide-gray-700 */
+  --ag-header-foreground-color: rgb(156 163 175) !important; /* dark:text-gray-400 */
+  --ag-foreground-color: rgb(255 255 255) !important; /* dark:text-white */
+  --ag-secondary-foreground-color: rgb(156 163 175) !important; /* dark:text-gray-400 */
+  --ag-data-background-color: rgb(17 24 39) !important; /* dark:bg-gray-900 */
+  
+  /* Additional dark theme parameters */
+  --ag-selected-row-background-color: rgb(31 41 55);
+  --ag-range-selection-background-color: rgba(31, 41, 55, 0.3);
+  --ag-range-selection-border-color: rgb(55 65 81);
+  
+  /* Browser color scheme for scrollbars */
+  --ag-browser-color-scheme: dark;
+  
+  /* Typography matching our table - use site font */
+  --ag-font-size: 0.875rem; /* text-sm */
+  --ag-font-family: var(--font-ibm-plex-sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif);
+  
+  /* Header styling */
+  --ag-header-height: 40px;
+  --ag-header-font-size: 0.75rem; /* text-xs */
+  --ag-header-font-weight: 500; /* font-medium */
+  --ag-header-cell-hover-background-color: rgb(55 65 81); /* dark:hover:bg-gray-700 */
+  
+  /* Row styling - Note: According to AG Grid docs, row-height MUST use CSS variable */
+  /* See: https://www.ag-grid.com/javascript-data-grid/theming-compactness/ */
+  /* Using spacing and padding scales for dynamic compactness */
+  --ag-spacing: 8px; /* Base spacing - will be overridden by viewMode */
+  --ag-row-vertical-padding-scale: 1; /* Will be overridden by viewMode */
+  --ag-header-vertical-padding-scale: 1; /* Will be overridden by viewMode */
+  --ag-cell-horizontal-padding: 20px; /* Will be overridden by viewMode */
+  --ag-cell-vertical-padding: 20px; /* Will be overridden by viewMode */
+  /* Row height will be calculated automatically based on content + padding */
+  
+  /* Borders and dividers */
+  --ag-borders: none;
+  --ag-border-radius: 0;
+  
+  /* Remove default AG Grid styling we don't want */
+  --ag-wrapper-border-radius: 0;
+  
+  /* Ensure proper box-sizing */
+  box-sizing: border-box;
+  font-family: var(--font-ibm-plex-sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif) !important;
+  width: 100% !important;
+}
+
+/* Light mode override (if needed) - DISABLED by default, only apply if explicitly set to light */
+/* We want dark theme by default, so this should rarely trigger */
+.ag-theme-file-table[data-ag-theme-mode="light"],
+[data-ag-theme-mode="light"] .ag-theme-file-table {
+  --ag-background-color: rgb(255 255 255) !important; /* bg-white */
+  --ag-header-background-color: rgb(249 250 251) !important; /* bg-gray-50 */
+  --ag-odd-row-background-color: rgb(255 255 255) !important; /* bg-white */
+  --ag-even-row-background-color: rgb(255 255 255) !important; /* bg-white */
+  --ag-row-hover-color: rgb(249 250 251) !important; /* hover:bg-gray-50 */
+  --ag-border-color: rgb(229 231 235) !important; /* divide-gray-200 */
+  --ag-header-foreground-color: rgb(107 114 128) !important; /* text-gray-500 */
+  --ag-foreground-color: rgb(17 24 39) !important; /* text-gray-900 */
+  --ag-secondary-foreground-color: rgb(107 114 128) !important; /* text-gray-500 */
+  --ag-header-cell-hover-background-color: rgb(243 244 246) !important; /* hover:bg-gray-100 */
+  --ag-data-background-color: rgb(255 255 255) !important; /* bg-white */
+}
+
+/* Header cell styling */
+.ag-theme-file-table .ag-header-cell {
+  text-transform: uppercase;
+  letter-spacing: 0.05em; /* tracking-wider */
+  font-weight: 500;
+  font-size: 0.75rem;
+  /* Don't set padding here - let AG Grid use --ag-spacing and padding scales */
+  border-bottom: 1px solid var(--ag-border-color);
+  font-family: var(--font-ibm-plex-sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif) !important;
+}
+
+.ag-theme-file-table .ag-header-cell:hover {
+  background-color: var(--ag-header-cell-hover-background-color);
+}
+
+/* Row styling */
+/* Note: According to AG Grid docs, we MUST use --ag-row-height CSS variable, not direct CSS height */
+.ag-theme-file-table .ag-row,
+.ag-theme-file-table .ag-row-odd,
+.ag-theme-file-table .ag-row-even,
+.ag-theme-file-table .ag-row-first,
+.ag-theme-file-table .ag-row-last {
+  border-bottom: 1px solid rgb(55 65 81) !important; /* Force dark border */
+  background-color: rgb(17 24 39) !important; /* Force dark background */
+  color: rgb(255 255 255) !important; /* Force white text */
+  /* Don't set height directly - use --ag-row-height variable instead */
+}
+
+.ag-theme-file-table .ag-row:hover,
+.ag-theme-file-table .ag-row-odd:hover,
+.ag-theme-file-table .ag-row-even:hover {
+  background-color: rgb(31 41 55) !important; /* Force dark hover */
+}
+
+/* Cell styling */
+.ag-theme-file-table .ag-cell {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  /* Don't set padding here - let AG Grid use --ag-spacing and padding scales */
+  border: none;
+  background-color: transparent !important;
+  color: rgb(255 255 255) !important; /* Force white text */
+  font-family: var(--font-ibm-plex-sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif) !important;
+}
+
+.ag-theme-file-table .ag-header-cell {
+  background-color: rgb(31 41 55) !important; /* Force dark header */
+  color: rgb(156 163 175) !important; /* Force gray text */
+}
+
+.ag-theme-file-table .ag-header-cell-text {
+  color: rgb(156 163 175) !important; /* Force gray header text */
+}
+
+/* Remove default AG Grid borders */
+/* Using direct CSS rules per AG Grid docs for visual customization */
+.ag-theme-file-table .ag-root-wrapper {
+  border: none !important;
+  background-color: rgb(17 24 39) !important; /* Force dark background */
+  width: 100% !important;
+}
+
+.ag-theme-file-table .ag-header {
+  border-bottom: 1px solid rgb(55 65 81) !important; /* Force dark border */
+  background-color: rgb(31 41 55) !important; /* Force dark header */
+}
+
+/* Force dark colors on all grid elements - comprehensive override */
+.ag-theme-file-table .ag-root-wrapper,
+.ag-theme-file-table .ag-root-wrapper-body,
+.ag-theme-file-table .ag-body-viewport,
+.ag-theme-file-table .ag-center-cols-viewport,
+.ag-theme-file-table .ag-center-cols-container,
+.ag-theme-file-table .ag-body,
+.ag-theme-file-table .ag-body-container {
+  background-color: rgb(17 24 39) !important; /* dark:bg-gray-900 */
+}
+
+/* Override any default theme styles that might be applied */
+/* Using higher specificity to ensure our dark theme takes precedence */
+/* Per AG Grid docs: data-ag-theme-mode controls theme modes */
+.ag-theme-file-table[data-ag-theme-mode="dark"],
+[data-ag-theme-mode="dark"] .ag-theme-file-table {
+  /* Force dark theme */
+  --ag-background-color: rgb(17 24 39) !important;
+  --ag-header-background-color: rgb(31 41 55) !important;
+  --ag-odd-row-background-color: rgb(17 24 39) !important;
+  --ag-row-hover-color: rgb(31 41 55) !important;
+  --ag-border-color: rgb(55 65 81) !important;
+  --ag-foreground-color: rgb(255 255 255) !important;
+  --ag-header-foreground-color: rgb(156 163 175) !important;
+  --ag-secondary-foreground-color: rgb(156 163 175) !important;
+  --ag-browser-color-scheme: dark !important;
+}
+
+/* Ensure body background is dark */
+/* Using direct CSS rules per AG Grid docs for elements that don't have specific parameters */
+/* Using hardcoded colors to ensure they override any default styles */
+.ag-theme-file-table .ag-body-viewport,
+.ag-theme-file-table .ag-body-viewport-wrapper,
+.ag-theme-file-table .ag-body-vertical-scroll-viewport,
+.ag-theme-file-table .ag-body-horizontal-scroll-viewport {
+  background-color: rgb(17 24 39) !important; /* dark:bg-gray-900 */
+}
+
+.ag-theme-file-table .ag-center-cols-viewport,
+.ag-theme-file-table .ag-center-cols-container,
+.ag-theme-file-table .ag-center-cols-clipper,
+.ag-theme-file-table .ag-center-cols-viewport-wrapper {
+  background-color: rgb(17 24 39) !important; /* dark:bg-gray-900 */
+}
+
+/* Target all possible AG Grid container elements */
+.ag-theme-file-table .ag-body,
+.ag-theme-file-table .ag-body-container,
+.ag-theme-file-table .ag-body-outer-wrapper,
+.ag-theme-file-table .ag-body-outer-spacer {
+  background-color: rgb(17 24 39) !important; /* dark:bg-gray-900 */
+}
+
+/* Ensure the main grid container background */
+.ag-theme-file-table .ag-root,
+.ag-theme-file-table .ag-root-wrapper-body {
+  background-color: rgb(17 24 39) !important; /* dark:bg-gray-900 */
+}
+
+/* Sort icons - we'll use our custom SortIcon component */
+.ag-theme-file-table .ag-icon {
+  display: none; /* Hide default AG Grid sort icons, we use custom ones */
+}
+
+/* Remove default selection styling */
+.ag-theme-file-table .ag-row-selected {
+  background-color: transparent;
+}
+
+.ag-theme-file-table .ag-row-selected:hover {
+  background-color: var(--ag-row-hover-color);
+}
+
+/* Excluded file styling */
+.ag-theme-file-table .ag-row.excluded {
+  opacity: 0.5;
+}
+
+/* Expanded row styling (for master-detail) */
+.ag-theme-file-table .ag-detail-row {
+  background-color: rgba(31, 41, 55, 0.5); /* dark:bg-gray-800/50 */
+  border-top: 1px solid var(--ag-border-color);
+}
+
+:not(.dark) .ag-theme-file-table:not([data-ag-theme-mode="dark"]) .ag-detail-row,
+[data-ag-theme-mode="light"] .ag-theme-file-table .ag-detail-row {
+  background-color: rgb(249 250 251); /* bg-gray-50 */
+}
+
+/* Floating filters - hide them for now, we use custom sorting */
+.ag-theme-file-table .ag-floating-filter {
+  display: none;
+}
+
+/* Column menu - style it to match our design */
+.ag-theme-file-table .ag-menu {
+  background-color: var(--ag-background-color);
+  border: 1px solid var(--ag-border-color);
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.dark .ag-theme-file-table .ag-menu,
+[data-ag-theme-mode="dark"] .ag-theme-file-table .ag-menu,
+.ag-theme-file-table[data-ag-theme-mode="dark"] .ag-menu {
+  background-color: var(--ag-header-background-color);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+}
+
+/* Loading overlay */
+.ag-theme-file-table .ag-overlay-loading-wrapper {
+  background-color: rgba(17, 24, 39, 0.8);
+}
+
+:not(.dark) .ag-theme-file-table:not([data-ag-theme-mode="dark"]) .ag-overlay-loading-wrapper,
+[data-ag-theme-mode="light"] .ag-theme-file-table .ag-overlay-loading-wrapper {
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+/* View modes use --ag-spacing and padding scales (set dynamically via JavaScript) */
+/* Borders are preserved - only padding changes */
+/* See: https://www.ag-grid.com/javascript-data-grid/theming-compactness/ */
+
+/* Condensed mode - set via CSS variables in component */
+.ag-theme-file-table[data-view-mode="condensed"],
+.ag-theme-file-table-condensed {
+  /* Spacing and padding scales are set via JavaScript, not CSS */
+  /* This ensures borders are preserved */
+}
+
+/* Normal mode - default styling (already defined above) */
+.ag-theme-file-table[data-view-mode="normal"] {
+  /* Spacing and padding scales are set via JavaScript, not CSS */
+}
+
+/* Expanded mode - same as normal */
+.ag-theme-file-table[data-view-mode="expanded"],
+.ag-theme-file-table-expanded {
+  /* Spacing and padding scales are set via JavaScript, not CSS */
+}
+

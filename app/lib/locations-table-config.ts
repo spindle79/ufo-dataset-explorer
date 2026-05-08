@@ -1,6 +1,22 @@
+"use client";
+
+import React from "react";
 import type { ColumnDefinition, DataTableConfig } from "@/components/DataTable";
 import type { FilterRule } from "@/components/UdbQueryBuilder";
 import type { Locations } from "@/lib/supabase-types";
+import Link from "next/link";
+
+// Render cell function for location name
+const renderLocationName = (value: string, record: Locations) => {
+  return React.createElement(
+    Link,
+    {
+      href: `/locations/${record.id}`,
+      className: "text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline",
+    },
+    value
+  );
+};
 
 // Locations Column Definitions
 export const locationsColumns: ColumnDefinition[] = [
@@ -10,6 +26,7 @@ export const locationsColumns: ColumnDefinition[] = [
     sortable: true,
     type: "text",
     defaultVisible: true,
+    renderCell: renderLocationName,
   },
   {
     key: "aliases",
@@ -161,8 +178,51 @@ export async function fetchLocationsData(params: {
 
 // Get Locations table configuration
 export function getLocationsTableConfig(
-  initialLimit = 50
+  initialLimit = 50,
+  sourceType?: string,
+  sourceId?: string
 ): DataTableConfig<Locations> {
+  // Create a custom fetch function if source filtering is needed
+  const fetchDataFn = sourceType && sourceId
+    ? async (params: {
+        limit: number;
+        offset: number;
+        sortBy: string;
+        sortOrder: "asc" | "desc";
+        filters: FilterRule[];
+      }): Promise<LocationsResponse> => {
+        const searchParams = new URLSearchParams({
+          limit: params.limit.toString(),
+          offset: params.offset.toString(),
+          sortBy: params.sortBy,
+          sortOrder: params.sortOrder,
+          source_type: sourceType,
+          source_id: sourceId,
+        });
+
+        const response = await fetch(
+          `/api/entities/locations?${searchParams.toString()}`
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch locations records");
+        }
+
+        const data = await response.json();
+        const locations = data.locations || [];
+
+        return {
+          records: locations.slice(params.offset, params.offset + params.limit),
+          pagination: {
+            limit: params.limit,
+            offset: params.offset,
+            total: locations.length,
+            hasMore: params.offset + params.limit < locations.length,
+          },
+        };
+      }
+    : fetchLocationsData;
+
   return {
     columns: locationsColumns,
     filterConfig: {
@@ -174,7 +234,7 @@ export function getLocationsTableConfig(
       },
       specialFields: {},
     },
-    fetchData: fetchLocationsData,
+    fetchData: fetchDataFn,
     getRecordId: (record) => record.id,
     formatCellValue: formatLocationsCellValue,
     initialLimit,

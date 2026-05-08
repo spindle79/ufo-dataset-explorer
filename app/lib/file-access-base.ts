@@ -493,6 +493,19 @@ export async function getFileBuffer<T extends BaseFile>(
   id: string,
   file: T
 ): Promise<Buffer | null> {
+  // Check if file is discovered but not yet fetched/processed
+  // Placeholder paths start with "discovered/" and indicate the file hasn't been uploaded yet
+  const isPlaceholderPath =
+    file.filePath && file.filePath.startsWith("discovered/");
+  const isDiscoveredStatus = file.status === "discovered";
+
+  if (isPlaceholderPath || isDiscoveredStatus) {
+    console.warn(
+      `Cannot serve ${config.datasetType} file ${id}: file is discovered but not yet processed. File path: ${file.filePath}, status: ${file.status}`
+    );
+    return null;
+  }
+
   try {
     // Download file from Supabase Storage
     const blob = await downloadFile(config.getBucket(), file.filePath, true);

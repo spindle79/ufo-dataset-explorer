@@ -101,6 +101,129 @@ export async function POST(request: NextRequest) {
         errorMessage
       );
 
+      // Automatic entity extraction if enabled and processing succeeded
+      if (
+        process.env.ENABLE_AUTO_ENTITY_EXTRACTION === 'true' &&
+        !hasError &&
+        pageContent.text
+      ) {
+        try {
+          const { extractEntitiesWithNeo4j } = await import(
+            '@/lib/entity-extraction/neo4j-enhanced'
+          );
+          const { getOrCreatePerson, getOrCreateLocation, getOrCreateCompany, getOrCreateProgram } = await import(
+            '@/lib/entity-relationships'
+          );
+          const {
+            createPersonRelationship,
+            createLocationRelationship,
+            createCompanyRelationship,
+            createProgramRelationship,
+          } = await import('@/lib/entity-relationships');
+          const { syncPersonToNeo4j, syncLocationToNeo4j, syncCompanyToNeo4j, syncProgramToNeo4j } = await import('@/lib/neo4j/sync');
+          const { syncPersonRelationshipToNeo4j, syncLocationRelationshipToNeo4j, syncCompanyRelationshipToNeo4j, syncProgramRelationshipToNeo4j } = await import('@/lib/neo4j/sync');
+
+          const entityExtractionResult = await extractEntitiesWithNeo4j(
+            pageContent.text,
+            scrapedPage.id,
+            'scrape'
+          );
+
+          // Save entities to Supabase and sync to Neo4j
+          for (const person of entityExtractionResult.people) {
+            try {
+              const personId = await getOrCreatePerson(
+                person.canonicalName || person.name,
+                person.aliases || []
+              );
+              await createPersonRelationship(personId, 'scrape', scrapedPage.id);
+              
+              if (process.env.ENABLE_NEO4J_SYNC === 'true') {
+                await syncPersonToNeo4j(personId, person.canonicalName || person.name, person.aliases || []);
+                await syncPersonRelationshipToNeo4j(personId, 'scrape', scrapedPage.id);
+              }
+            } catch (err) {
+              console.warn(`Failed to save person ${person.name}:`, err);
+            }
+          }
+
+          for (const location of entityExtractionResult.locations) {
+            try {
+              const locationId = await getOrCreateLocation(
+                location.canonicalName || location.name,
+                location.aliases || [],
+                {
+                  latitude: location.latitude,
+                  longitude: location.longitude,
+                  address: location.address,
+                  city: location.city,
+                  state: location.state,
+                  country: location.country,
+                }
+              );
+              await createLocationRelationship(locationId, 'scrape', scrapedPage.id);
+              
+              if (process.env.ENABLE_NEO4J_SYNC === 'true') {
+                await syncLocationToNeo4j(
+                  locationId,
+                  location.canonicalName || location.name,
+                  location.aliases || [],
+                  {
+                    latitude: location.latitude,
+                    longitude: location.longitude,
+                    address: location.address,
+                    city: location.city,
+                    state: location.state,
+                    country: location.country,
+                  }
+                );
+                await syncLocationRelationshipToNeo4j(locationId, 'scrape', scrapedPage.id);
+              }
+            } catch (err) {
+              console.warn(`Failed to save location ${location.name}:`, err);
+            }
+          }
+
+          for (const company of entityExtractionResult.companies) {
+            try {
+              const companyId = await getOrCreateCompany(
+                company.canonicalName || company.name,
+                company.aliases || []
+              );
+              await createCompanyRelationship(companyId, 'scrape', scrapedPage.id);
+              
+              if (process.env.ENABLE_NEO4J_SYNC === 'true') {
+                await syncCompanyToNeo4j(companyId, company.canonicalName || company.name, company.aliases || []);
+                await syncCompanyRelationshipToNeo4j(companyId, 'scrape', scrapedPage.id);
+              }
+            } catch (err) {
+              console.warn(`Failed to save company ${company.name}:`, err);
+            }
+          }
+
+          for (const program of entityExtractionResult.programs) {
+            try {
+              const programId = await getOrCreateProgram(
+                program.canonicalName || program.name,
+                program.aliases || [],
+                program.description
+              );
+              await createProgramRelationship(programId, 'scrape', scrapedPage.id);
+              
+              if (process.env.ENABLE_NEO4J_SYNC === 'true') {
+                await syncProgramToNeo4j(programId, program.canonicalName || program.name, program.aliases || [], program.description);
+                await syncProgramRelationshipToNeo4j(programId, 'scrape', scrapedPage.id);
+              }
+            } catch (err) {
+              console.warn(`Failed to save program ${program.name}:`, err);
+            }
+          }
+        } catch (entityError) {
+          console.error('Error in automatic entity extraction:', entityError);
+          // Don't fail the request if entity extraction fails
+        }
+      }
+
       return NextResponse.json({
         success: !hasError,
         id: scrapedPage.id,

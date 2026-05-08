@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import Navigation from "../../components/Navigation";
 import Tabs from "../../components/Tabs";
 import Breadcrumbs from "../../components/shared/Breadcrumbs";
 import type { VideoFile } from "../../lib/video-types";
@@ -30,6 +29,7 @@ import FormTextarea from "../../components/shared/FormTextarea";
 import FormFileInput from "../../components/shared/FormFileInput";
 import FormError from "../../components/shared/FormError";
 import FormButton from "../../components/shared/FormButton";
+import Tooltip from "../../components/shared/Tooltip";
 import FormCheckbox from "../../components/shared/FormCheckbox";
 import { decodeFileName } from "../../lib/utils";
 import PeopleTab from "../../components/entities/PeopleTab";
@@ -1013,6 +1013,11 @@ export default function VideoDetailPage() {
           )}
         </div>
         <div className="flex gap-2 flex-shrink-0">
+          <Tooltip
+            id="download-video-detail"
+            content="Download <b>video file</b> to your device"
+            html
+          >
           <FormButton
             onClick={handleDownload}
             variant="success"
@@ -1021,6 +1026,12 @@ export default function VideoDetailPage() {
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Download</span>
           </FormButton>
+          </Tooltip>
+          <Tooltip
+            id="edit-video-detail"
+            content="Edit video <b>metadata</b> and details"
+            html
+          >
           <FormButton
             onClick={handleOpenEditModal}
             variant="primary"
@@ -1029,6 +1040,12 @@ export default function VideoDetailPage() {
             <Edit className="w-4 h-4" />
             <span className="hidden sm:inline">Edit</span>
           </FormButton>
+          </Tooltip>
+          <Tooltip
+            id="transcribe-video-detail"
+            content="Generate <u>video transcription</u>"
+            html
+          >
           <FormButton
             onClick={handleOpenTranscribeModal}
             variant="purple"
@@ -1037,6 +1054,7 @@ export default function VideoDetailPage() {
             <Video className="w-4 h-4" />
             <span className="hidden sm:inline">Transcribe</span>
           </FormButton>
+          </Tooltip>
         </div>
       </div>
 
@@ -1201,16 +1219,32 @@ export default function VideoDetailPage() {
         )}
 
         {activeTab === "people" && (
-          <PeopleTab content={currentTranscript?.text_content || null} />
+          <PeopleTab 
+            content={currentTranscript?.text_content || null}
+            sourceType="video"
+            sourceId={id}
+          />
         )}
         {activeTab === "locations" && (
-          <LocationsTab content={currentTranscript?.text_content || null} />
+          <LocationsTab 
+            content={currentTranscript?.text_content || null}
+            sourceType="video"
+            sourceId={id}
+          />
         )}
         {activeTab === "companies" && (
-          <CompaniesTab content={currentTranscript?.text_content || null} />
+          <CompaniesTab 
+            content={currentTranscript?.text_content || null}
+            sourceType="video"
+            sourceId={id}
+          />
         )}
         {activeTab === "programs" && (
-          <ProgramsTab content={currentTranscript?.text_content || null} />
+          <ProgramsTab 
+            content={currentTranscript?.text_content || null}
+            sourceType="video"
+            sourceId={id}
+          />
         )}
       </Tabs>
 

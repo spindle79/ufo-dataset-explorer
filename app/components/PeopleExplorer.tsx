@@ -1,11 +1,11 @@
 "use client";
 
-import PeopleDataTable from "./PeopleDataTable";
+import PeopleViewer from "./PeopleViewer";
 
 export default function PeopleExplorer() {
   return (
     <div className="space-y-6">
-      <PeopleDataTable initialLimit={50} />
+      <PeopleViewer />
     </div>
   );
 }

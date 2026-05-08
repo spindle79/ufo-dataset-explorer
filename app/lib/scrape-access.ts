@@ -108,7 +108,7 @@ export async function createScrapedPage(
     error: existingCheck.error,
   });
 
-  let insertResponse;
+  let insertResponse: any;
   let insertError: any = null;
   let pageDataArray: any = null;
 
@@ -192,12 +192,14 @@ export async function createScrapedPage(
     });
 
     // Also log the full response object
-    console.error("Full insertResponse:", {
-      data: insertResponse.data,
-      error: insertResponse.error,
-      hasData: !!insertResponse.data,
-      hasError: !!insertResponse.error,
-    });
+    if (insertResponse) {
+      console.error("Full insertResponse:", {
+        data: insertResponse.data,
+        error: insertResponse.error,
+        hasData: !!insertResponse.data,
+        hasError: !!insertResponse.error,
+      });
+    }
 
     const errorInfo: Record<string, any> = {
       message: errorObj.message,
@@ -505,4 +507,208 @@ export async function getScrapedPageHtml(id: string): Promise<string | null> {
     console.error("Failed to read scraped page HTML:", error);
     return null;
   }
+}
+
+/**
+ * Get all unique domains with aggregated counts
+ */
+export interface DomainWithCounts {
+  domain: string;
+  pageCount: number;
+  documentCount: number;
+  imageCount: number;
+  audioCount: number;
+  videoCount: number;
+}
+
+export async function getDomainsWithCounts(): Promise<DomainWithCounts[]> {
+  const supabase = createAdminClient();
+
+  // Get all unique domains with page counts
+  const { data: domainData, error: domainError } = await supabase
+    .from("scraped_pages")
+    .select("domain")
+    .not("domain", "is", null);
+
+  if (domainError) {
+    throw new Error(`Failed to fetch domains: ${domainError.message}`);
+  }
+
+  // Get unique domains
+  const uniqueDomains = Array.from(
+    new Set(domainData?.map((d) => d.domain).filter(Boolean) || [])
+  );
+
+  // For each domain, get counts
+  const domainsWithCounts = await Promise.all(
+    uniqueDomains.map(async (domain) => {
+      // Get page count
+      const { count: pageCount } = await supabase
+        .from("scraped_pages")
+        .select("*", { count: "exact", head: true })
+        .eq("domain", domain);
+
+      // Get media counts via relationships
+      // First, get all page IDs for this domain
+      const { data: pages } = await supabase
+        .from("scraped_pages")
+        .select("id")
+        .eq("domain", domain);
+
+      const pageIds = pages?.map((p) => p.id) || [];
+
+      if (pageIds.length === 0) {
+        return {
+          domain,
+          pageCount: pageCount || 0,
+          documentCount: 0,
+          imageCount: 0,
+          audioCount: 0,
+          videoCount: 0,
+        };
+      }
+
+      // Get media relationships for these pages
+      const { data: relationships } = await supabase
+        .from("scraped_page_media")
+        .select(
+          `
+          original_uploads:original_upload_id (
+            dataset_type
+          )
+        `
+        )
+        .in("scraped_page_id", pageIds);
+
+      // Count by type
+      let documentCount = 0;
+      let imageCount = 0;
+      let audioCount = 0;
+      let videoCount = 0;
+
+      relationships?.forEach((rel: any) => {
+        const type = rel.original_uploads?.dataset_type;
+        if (type === "pdf") documentCount++;
+        else if (type === "image") imageCount++;
+        else if (type === "audio") audioCount++;
+        else if (type === "video") videoCount++;
+      });
+
+      return {
+        domain,
+        pageCount: pageCount || 0,
+        documentCount,
+        imageCount,
+        audioCount,
+        videoCount,
+      };
+    })
+  );
+
+  return domainsWithCounts;
+}
+
+/**
+ * Get pages filtered by domain
+ */
+export async function getPagesByDomain(
+  domain: string
+): Promise<ScrapedPage[]> {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("scraped_pages")
+    .select("*")
+    .eq("domain", domain)
+    .order("scraped_date", { ascending: false });
+
+  if (error) {
+    throw new Error(`Failed to fetch pages by domain: ${error.message}`);
+  }
+
+  return data || [];
+}
+
+/**
+ * Get media files for a domain by type
+ */
+export interface DomainMediaItem {
+  id: string;
+  type: "pdf" | "image" | "audio" | "video";
+  url: string;
+  status: string;
+  title?: string;
+  fileName?: string;
+  discoveredAt: string;
+  sourcePageId: string;
+  sourcePageTitle: string;
+  sourcePageUrl: string;
+}
+
+export async function getMediaByDomain(
+  domain: string,
+  type: "pdf" | "image" | "audio" | "video"
+): Promise<DomainMediaItem[]> {
+  const supabase = createAdminClient();
+
+  // First, get all page IDs for this domain
+  const { data: pages } = await supabase
+    .from("scraped_pages")
+    .select("id, title, url")
+    .eq("domain", domain);
+
+  if (!pages || pages.length === 0) {
+    return [];
+  }
+
+  const pageIds = pages.map((p) => p.id);
+  const pageMap = new Map(pages.map((p) => [p.id, p]));
+
+  // Get media relationships for these pages
+  const { data: relationships, error } = await supabase
+    .from("scraped_page_media")
+    .select(
+      `
+      scraped_page_id,
+      discovered_at,
+      original_uploads:original_upload_id (
+        id,
+        dataset_type,
+        original_url,
+        canonical_url,
+        status,
+        file_name
+      )
+    `
+    )
+    .in("scraped_page_id", pageIds);
+
+  if (error) {
+    throw new Error(`Failed to fetch media by domain: ${error.message}`);
+  }
+
+  // Filter by type and map to result format
+  const mediaItems: DomainMediaItem[] = [];
+
+  relationships?.forEach((rel: any) => {
+    const upload = rel.original_uploads;
+    if (upload?.dataset_type === type) {
+      const sourcePage = pageMap.get(rel.scraped_page_id);
+      if (sourcePage) {
+        mediaItems.push({
+          id: upload.id,
+          type: upload.dataset_type as "pdf" | "image" | "audio" | "video",
+          url: upload.original_url,
+          status: upload.status,
+          fileName: upload.file_name || undefined,
+          discoveredAt: rel.discovered_at,
+          sourcePageId: rel.scraped_page_id,
+          sourcePageTitle: sourcePage.title,
+          sourcePageUrl: sourcePage.url,
+        });
+      }
+    }
+  });
+
+  return mediaItems;
 }

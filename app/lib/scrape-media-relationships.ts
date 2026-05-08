@@ -1,7 +1,7 @@
 /**
  * Scrape Media Relationships
  *
- * Manages the relationship between scraped pages and media files (audio, PDF, video).
+ * Manages the relationship between scraped pages and media files (audio, PDF, video, image).
  * When links are discovered during scraping, this creates records in original_uploads
  * (if they don't exist) and establishes the relationship.
  */
@@ -12,7 +12,7 @@ import type { OriginalUploadCreate } from "./supabase-types";
 
 export interface DiscoveredLink {
   url: string;
-  type: "audio" | "pdf" | "video";
+  type: "audio" | "pdf" | "video" | "image";
   text?: string;
   alt?: string;
 }
@@ -24,7 +24,7 @@ export interface DiscoveredLink {
  */
 export async function getOrCreateMediaRecord(
   url: string,
-  type: "audio" | "pdf" | "video"
+  type: "audio" | "pdf" | "video" | "image"
 ): Promise<string> {
   const supabase = createAdminClient();
   const canonical = getCanonicalUrl(url);
@@ -133,7 +133,7 @@ export async function createScrapeMediaRelationships(
 export async function getMediaForScrapedPage(scrapedPageId: string): Promise<
   Array<{
     id: string;
-    type: "audio" | "pdf" | "video";
+    type: "audio" | "pdf" | "video" | "image";
     url: string;
     status: string;
     link_text?: string;
@@ -172,7 +172,8 @@ export async function getMediaForScrapedPage(scrapedPageId: string): Promise<
       type: (rel.original_uploads as any).dataset_type as
         | "audio"
         | "pdf"
-        | "video",
+        | "video"
+        | "image",
       url: (rel.original_uploads as any).original_url,
       status: (rel.original_uploads as any).status,
       link_text: rel.link_text || undefined,

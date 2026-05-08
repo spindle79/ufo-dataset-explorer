@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import Navigation from "../../components/Navigation";
 import Breadcrumbs from "../../components/shared/Breadcrumbs";
 import type { PdfFile } from "../../lib/pdf-types";
 import {
@@ -30,6 +29,7 @@ import TranscriptionTable from "../../components/shared/TranscriptionTable";
 import PdfViewerComponent from "../../components/shared/PdfViewer";
 import PdfViewer from "../../components/pdf/PdfViewer";
 import FormButton from "../../components/shared/FormButton";
+import Tooltip from "../../components/shared/Tooltip";
 import FormField from "../../components/shared/FormField";
 import FormTextarea from "../../components/shared/FormTextarea";
 import FormError from "../../components/shared/FormError";
@@ -1040,22 +1040,34 @@ export default function PdfDetailPage() {
           )}
         </div>
         <div className="flex gap-2 flex-shrink-0">
-          <FormButton
-            onClick={handleDownload}
-            variant="success"
-            className="flex items-center gap-1.5 text-sm px-3 py-1.5"
+          <Tooltip
+            id="download-pdf-detail"
+            content="Download <b>PDF file</b> to your device"
+            html
           >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Download</span>
-          </FormButton>
-          <FormButton
-            onClick={handleOpenEditModal}
-            variant="primary"
-            className="flex items-center gap-1.5 text-sm px-3 py-1.5"
+            <FormButton
+              onClick={handleDownload}
+              variant="success"
+              className="flex items-center gap-1.5 text-sm px-3 py-1.5"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Download</span>
+            </FormButton>
+          </Tooltip>
+          <Tooltip
+            id="edit-pdf-detail"
+            content="Edit PDF <b>metadata</b> and details"
+            html
           >
-            <Edit className="w-4 h-4" />
-            <span className="hidden sm:inline">Edit</span>
-          </FormButton>
+            <FormButton
+              onClick={handleOpenEditModal}
+              variant="primary"
+              className="flex items-center gap-1.5 text-sm px-3 py-1.5"
+            >
+              <Edit className="w-4 h-4" />
+              <span className="hidden sm:inline">Edit</span>
+            </FormButton>
+          </Tooltip>
           <FormButton
             onClick={handleOpenExtractModal}
             variant="purple"
@@ -1548,6 +1560,8 @@ export default function PdfDetailPage() {
             content={
               currentExtraction?.text_content || pdfFile?.extractedText || null
             }
+            sourceType="pdf"
+            sourceId={id}
           />
         )}
         {activeTab === "locations" && (
@@ -1555,6 +1569,8 @@ export default function PdfDetailPage() {
             content={
               currentExtraction?.text_content || pdfFile?.extractedText || null
             }
+            sourceType="pdf"
+            sourceId={id}
           />
         )}
         {activeTab === "companies" && (
@@ -1562,6 +1578,8 @@ export default function PdfDetailPage() {
             content={
               currentExtraction?.text_content || pdfFile?.extractedText || null
             }
+            sourceType="pdf"
+            sourceId={id}
           />
         )}
         {activeTab === "programs" && (
@@ -1569,6 +1587,8 @@ export default function PdfDetailPage() {
             content={
               currentExtraction?.text_content || pdfFile?.extractedText || null
             }
+            sourceType="pdf"
+            sourceId={id}
           />
         )}
       </Tabs>

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { ChevronDown, X } from 'lucide-react';
 import { AiGeneration } from './GenerationViewer';
 import MarkdownEditor from '../MarkdownEditor';
+import Tooltip from './Tooltip';
 
 interface VersionHistoryProps {
   versions: AiGeneration[];
@@ -59,12 +60,18 @@ export default function VersionHistory({
             </div>
             <div className="flex items-center gap-2">
               {currentGenerationId !== gen.id && (
-                <button
-                  onClick={() => onSetCurrent(gen.id)}
-                  className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                <Tooltip
+                  id={`set-current-version-${gen.id}`}
+                  content="Make this version the <b>active</b> one"
+                  html
                 >
-                  Set as Current
-                </button>
+                  <button
+                    onClick={() => onSetCurrent(gen.id)}
+                    className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Set as Current
+                  </button>
+                </Tooltip>
               )}
             </div>
           </div>
@@ -78,22 +85,28 @@ export default function VersionHistory({
                   className="text-sm"
                 />
                 {gen.text_content.length > 500 && (
-                  <button
-                    onClick={() => {
-                      setExpandedVersions(prev => {
-                        const next = new Set(prev);
-                        if (next.has(gen.id)) {
-                          next.delete(gen.id);
-                        } else {
-                          next.add(gen.id);
-                        }
-                        return next;
-                      });
-                    }}
-                    className="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  <Tooltip
+                    id={`expand-version-${gen.id}`}
+                    content={expandedVersions.has(gen.id) ? "Collapse <b>expanded</b> view" : "Expand or <u>collapse</u> full text"}
+                    html
                   >
-                    {expandedVersions.has(gen.id) ? 'Show Less' : 'Show Full Text'}
-                  </button>
+                    <button
+                      onClick={() => {
+                        setExpandedVersions(prev => {
+                          const next = new Set(prev);
+                          if (next.has(gen.id)) {
+                            next.delete(gen.id);
+                          } else {
+                            next.add(gen.id);
+                          }
+                          return next;
+                        });
+                      }}
+                      className="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      {expandedVersions.has(gen.id) ? 'Show Less' : 'Show Full Text'}
+                    </button>
+                  </Tooltip>
                 )}
               </div>
             ) : (

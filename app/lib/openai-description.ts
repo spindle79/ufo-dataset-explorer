@@ -1,33 +1,30 @@
 /**
- * Generate descriptions using OpenAI gpt-5-nano model
+ * Generate descriptions using LLM (OpenAI or Ollama)
  * Creates concise 2-4 sentence descriptions from scraped/transcribed content
  */
 
-import OpenAI from "openai";
-
-const DEFAULT_MODEL = "gpt-5-nano";
+import { getLLMClient } from "./llm/client";
+import { getDefaultModel, getLLMConfig } from "./llm/config";
 
 /**
- * Generate a description from content using OpenAI gpt-5-nano
+ * Generate a description from content using LLM (OpenAI or Ollama)
  * @param content The scraped or transcribed content to summarize
- * @param model The OpenAI model to use (defaults to gpt-5-nano)
+ * @param model The model to use (defaults based on configured provider)
  * @returns A 2-4 sentence description
  */
 export async function generateDescription(
   content: string,
-  model: string = DEFAULT_MODEL
+  model?: string
 ): Promise<string> {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error("OPENAI_API_KEY not configured");
-  }
-
   if (!content || content.trim().length === 0) {
     throw new Error("Content is required and cannot be empty");
   }
 
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const config = getLLMConfig();
+  const defaultModel = model || getDefaultModel(config.provider);
+  const client = getLLMClient();
 
-  // Truncate content if it's too long (gpt-5-nano has context limits)
+  // Truncate content if it's too long (context limits vary by model)
   // Keep first 100k characters to stay within reasonable limits
   const truncatedContent =
     content.length > 100000 ? content.substring(0, 100000) + "..." : content;
@@ -39,33 +36,28 @@ export async function generateDescription(
 ${truncatedContent}`;
 
   try {
-    const response = await client.chat.completions.create({
-      model,
-      messages: [
+    const response = await client.chat(
+      [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      // No token limit - let the model use what it needs for reasoning and output
-    });
+      {
+        model: defaultModel,
+        temperature: config.provider === 'ollama' ? 0.7 : undefined,
+      }
+    );
 
-    // Log the response structure for debugging
-    console.log("OpenAI API response:", JSON.stringify(response, null, 2));
-
-    // Extract description from response
-    const description = response.choices[0]?.message?.content?.trim() || "";
+    const description = response.content;
 
     if (!description) {
-      console.error("Empty description response. Full response:", response);
       throw new Error(
-        `Failed to generate description: empty response. Response structure: ${JSON.stringify(
-          response
-        )}`
+        `Failed to generate description: empty response from ${config.provider}`
       );
     }
 
     return description;
   } catch (error) {
-    console.error("Error generating description with OpenAI:", error);
+    console.error(`Error generating description with ${config.provider}:`, error);
     if (error instanceof Error && error.message.includes("empty response")) {
       throw error;
     }

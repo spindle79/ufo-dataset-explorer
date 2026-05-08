@@ -1,6 +1,22 @@
+"use client";
+
+import React from "react";
 import type { ColumnDefinition, DataTableConfig } from "@/components/DataTable";
 import type { FilterRule } from "@/components/UdbQueryBuilder";
 import type { People } from "@/lib/supabase-types";
+import Link from "next/link";
+
+// Render cell function for person name
+const renderPersonName = (value: string, record: People) => {
+  return React.createElement(
+    Link,
+    {
+      href: `/people/${record.id}`,
+      className: "text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline",
+    },
+    value
+  );
+};
 
 // People Column Definitions
 export const peopleColumns: ColumnDefinition[] = [
@@ -10,6 +26,7 @@ export const peopleColumns: ColumnDefinition[] = [
     sortable: true,
     type: "text",
     defaultVisible: true,
+    renderCell: renderPersonName,
   },
   {
     key: "aliases",
@@ -107,8 +124,51 @@ export async function fetchPeopleData(params: {
 
 // Get People table configuration
 export function getPeopleTableConfig(
-  initialLimit = 50
+  initialLimit = 50,
+  sourceType?: string,
+  sourceId?: string
 ): DataTableConfig<People> {
+  // Create a custom fetch function if source filtering is needed
+  const fetchDataFn = sourceType && sourceId
+    ? async (params: {
+        limit: number;
+        offset: number;
+        sortBy: string;
+        sortOrder: "asc" | "desc";
+        filters: FilterRule[];
+      }): Promise<PeopleResponse> => {
+        const searchParams = new URLSearchParams({
+          limit: params.limit.toString(),
+          offset: params.offset.toString(),
+          sortBy: params.sortBy,
+          sortOrder: params.sortOrder,
+          source_type: sourceType,
+          source_id: sourceId,
+        });
+
+        const response = await fetch(
+          `/api/entities/people?${searchParams.toString()}`
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch people records");
+        }
+
+        const data = await response.json();
+        const people = data.people || [];
+
+        return {
+          records: people.slice(params.offset, params.offset + params.limit),
+          pagination: {
+            limit: params.limit,
+            offset: params.offset,
+            total: people.length,
+            hasMore: params.offset + params.limit < people.length,
+          },
+        };
+      }
+    : fetchPeopleData;
+
   return {
     columns: peopleColumns,
     filterConfig: {
@@ -117,7 +177,7 @@ export function getPeopleTableConfig(
       },
       specialFields: {},
     },
-    fetchData: fetchPeopleData,
+    fetchData: fetchDataFn,
     getRecordId: (record) => record.id,
     formatCellValue: formatPeopleCellValue,
     initialLimit,

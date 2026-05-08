@@ -24,11 +24,12 @@ import {
 } from "lucide-react";
 import AudioViewer from "../../components/audio/AudioViewer";
 import PdfViewer from "../../components/pdf/PdfViewer";
+import ImageViewer from "../../components/image/ImageViewer";
 import PeopleTab from "../../components/entities/PeopleTab";
 import LocationsTab from "../../components/entities/LocationsTab";
 import CompaniesTab from "../../components/entities/CompaniesTab";
 import ProgramsTab from "../../components/entities/ProgramsTab";
-import { Users, MapPin, Building2, FolderKanban } from "lucide-react";
+import { Users, MapPin, Building2, FolderKanban, Image as ImageIcon } from "lucide-react";
 
 export default function ScrapeDetailPage() {
   const params = useParams();
@@ -45,6 +46,7 @@ export default function ScrapeDetailPage() {
     | "links"
     | "audio"
     | "video"
+    | "images"
     | "documents"
     | "people"
     | "locations"
@@ -58,7 +60,7 @@ export default function ScrapeDetailPage() {
       text?: string;
       alt?: string;
       existingRecord?: {
-        type: "scrape" | "audio" | "pdf" | "video";
+        type: "scrape" | "audio" | "pdf" | "video" | "image";
         id: string;
         href: string;
       };
@@ -67,6 +69,7 @@ export default function ScrapeDetailPage() {
   const [loadingLinks, setLoadingLinks] = useState(false);
   const [audioFileIds, setAudioFileIds] = useState<string[]>([]);
   const [pdfFileIds, setPdfFileIds] = useState<string[]>([]);
+  const [imageFileIds, setImageFileIds] = useState<string[]>([]);
   const [rescraping, setRescraping] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
 
@@ -116,6 +119,7 @@ export default function ScrapeDetailPage() {
       (activeTab === "links" ||
         activeTab === "audio" ||
         activeTab === "video" ||
+        activeTab === "images" ||
         activeTab === "documents")
     ) {
       const fetchLinks = async () => {
@@ -127,7 +131,7 @@ export default function ScrapeDetailPage() {
             const allLinks = data.links || [];
             setLinks(allLinks);
 
-            // Extract audio and PDF file IDs from links
+            // Extract audio, PDF, and image file IDs from links
             const audioIds = allLinks
               .filter(
                 (link: (typeof allLinks)[0]) =>
@@ -140,19 +144,28 @@ export default function ScrapeDetailPage() {
                   link.existingRecord?.type === "pdf"
               )
               .map((link: (typeof allLinks)[0]) => link.existingRecord!.id);
+            const imageIds = allLinks
+              .filter(
+                (link: (typeof allLinks)[0]) =>
+                  link.existingRecord?.type === "image"
+              )
+              .map((link: (typeof allLinks)[0]) => link.existingRecord!.id);
 
             setAudioFileIds(audioIds);
             setPdfFileIds(pdfIds);
+            setImageFileIds(imageIds);
           } else {
             setLinks([]);
             setAudioFileIds([]);
             setPdfFileIds([]);
+            setImageFileIds([]);
           }
         } catch (err) {
           console.error("Error loading links:", err);
           setLinks([]);
           setAudioFileIds([]);
           setPdfFileIds([]);
+          setImageFileIds([]);
         } finally {
           setLoadingLinks(false);
         }
@@ -200,6 +213,7 @@ export default function ScrapeDetailPage() {
         activeTab === "links" ||
         activeTab === "audio" ||
         activeTab === "video" ||
+        activeTab === "images" ||
         activeTab === "documents"
       ) {
         const linksResponse = await fetch(`/api/scrape/${id}/links`);
@@ -208,7 +222,7 @@ export default function ScrapeDetailPage() {
           const allLinks = linksData.links || [];
           setLinks(allLinks);
 
-          // Update audio and PDF file IDs
+          // Update audio, PDF, and image file IDs
           const audioIds = allLinks
             .filter(
               (link: (typeof allLinks)[0]) =>
@@ -221,9 +235,16 @@ export default function ScrapeDetailPage() {
                 link.existingRecord?.type === "pdf"
             )
             .map((link: (typeof allLinks)[0]) => link.existingRecord!.id);
+          const imageIds = allLinks
+            .filter(
+              (link: (typeof allLinks)[0]) =>
+                link.existingRecord?.type === "image"
+            )
+            .map((link: (typeof allLinks)[0]) => link.existingRecord!.id);
 
           setAudioFileIds(audioIds);
           setPdfFileIds(pdfIds);
+          setImageFileIds(imageIds);
         }
       }
 
@@ -448,6 +469,11 @@ export default function ScrapeDetailPage() {
             icon: <Video className="w-4 h-4" />,
           },
           {
+            id: "images",
+            label: "Images",
+            icon: <ImageIcon className="w-4 h-4" />,
+          },
+          {
             id: "documents",
             label: "Documents",
             icon: <File className="w-4 h-4" />,
@@ -482,6 +508,7 @@ export default function ScrapeDetailPage() {
               | "links"
               | "audio"
               | "video"
+              | "images"
               | "documents"
               | "people"
               | "locations"
@@ -532,6 +559,26 @@ export default function ScrapeDetailPage() {
             ) : (
               <AudioViewer
                 filterIds={audioFileIds}
+                defaultViewMode="condensed"
+              />
+            )}
+          </div>
+        ) : activeTab === "images" ? (
+          <div className="border border-gray-300 dark:border-gray-600 rounded p-4 bg-white dark:bg-gray-900">
+            {loadingLinks ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                <span className="ml-2 text-gray-600 dark:text-gray-400">
+                  Loading images...
+                </span>
+              </div>
+            ) : imageFileIds.length === 0 ? (
+              <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+                No images linked from this scrape
+              </p>
+            ) : (
+              <ImageViewer
+                filterIds={imageFileIds}
                 defaultViewMode="condensed"
               />
             )}
@@ -667,10 +714,34 @@ export default function ScrapeDetailPage() {
             ) : null}
           </div>
         )}
-        {activeTab === "people" && <PeopleTab content={content} />}
-        {activeTab === "locations" && <LocationsTab content={content} />}
-        {activeTab === "companies" && <CompaniesTab content={content} />}
-        {activeTab === "programs" && <ProgramsTab content={content} />}
+        {activeTab === "people" && (
+          <PeopleTab 
+            content={content}
+            sourceType="scrape"
+            sourceId={id}
+          />
+        )}
+        {activeTab === "locations" && (
+          <LocationsTab 
+            content={content}
+            sourceType="scrape"
+            sourceId={id}
+          />
+        )}
+        {activeTab === "companies" && (
+          <CompaniesTab 
+            content={content}
+            sourceType="scrape"
+            sourceId={id}
+          />
+        )}
+        {activeTab === "programs" && (
+          <ProgramsTab 
+            content={content}
+            sourceType="scrape"
+            sourceId={id}
+          />
+        )}
       </Tabs>
     </main>
   );

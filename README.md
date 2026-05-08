@@ -2,6 +2,38 @@
 
 A Next.js 16 application for exploring the UFO sightings dataset from Hugging Face. This project provides a modern web interface, API endpoints, MCP server integration, and AnswerAgent connectivity for analyzing and exploring UFO sighting data.
 
+[![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+> **At a glance** — a full-stack data-exploration platform built around a 327k-record UFO sightings dataset. Next.js 16 App Router on the front, **Supabase + Postgres** for primary storage with row-level security policies and seeded migrations, **Neo4j** for entity-graph queries, **MCP server** for AI-agent access, plus a media-extraction layer that runs **PDF text extraction**, **audio transcription** (Whisper / AssemblyAI), and **image / video** ingestion through pluggable LLM providers (OpenAI / Ollama / Hugging Face NER).
+>
+> **What this repo demonstrates**
+>
+> - **End-to-end full-stack architecture** — 60+ App Router pages, 50+ API routes, Supabase migrations + RLS policies, Neo4j sync pipeline, MCP integration, all wired together with a clean abstraction over storage backends (filesystem / Supabase / HuggingFace API).
+> - **Pluggable LLM provider layer** — `app/lib/llm/` lets every entity-extraction / NER / generation feature flip between OpenAI, local Ollama, and Hugging Face Inference API via env config (`LLM_PROVIDER=openai|ollama`, `NER_PROVIDER=huggingface|local`). Useful as a reference for building LLM features that aren't locked to one vendor.
+> - **Multi-modal ingestion** — PDF, audio, video, image, and scrape pipelines, each with detail/list pages, deduplication, version history, and entity extraction. Audio + video pages handle transcription via Whisper or AssemblyAI behind a feature flag.
+> - **Real database design** — `supabase/db/init/` ships nine migrations covering roles, auth, RLS, storage schemas, AI generations, the UFO clustered table, scraped pages, and a 21k-row seed of the Larry Hatch UDB UFO database (`008_seed_udb_data.sql`).
+> - **Knowledge graph integration** — Companies / People / Locations / Programs are extracted from text and synced to Neo4j; the graph queries live in `app/lib/neo4j/queries.ts` and are surfaced through `/api/graph` routes.
+> - **Honest dataset boundaries** — `data/` and the U.RND binary are gitignored; the repo ships only the code that loads them. Sample queries fall back to the public Hugging Face API if local files are missing.
+>
+> **Quickstart**
+>
+> ```bash
+> nvm use                              # Node 24
+> pnpm install
+> cp env.template .env.local           # fill in keys
+> pnpm supabase:start                  # docker-compose up Supabase + Neo4j
+> pnpm setup-supabase                  # auto-generates JWT + role keys
+> pnpm download-dataset                # fetch the HF dataset
+> pnpm dev                             # http://localhost:3002
+> ```
+>
+> Full setup (Supabase + Neo4j), API reference, and architecture docs live under [`docs/`](docs/).
+
+---
+
+
+
 ## Dataset
 
 This project uses the [UFO Sightings – Cleaned & Unified Dataset](https://huggingface.co/datasets/cjc0013/Ufo_data_clustered) from Hugging Face, which contains approximately **327,000 records** of UFO sightings merged from multiple publicly available Kaggle datasets.

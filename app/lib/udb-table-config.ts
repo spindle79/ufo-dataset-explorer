@@ -236,9 +236,6 @@ export function getUdbTableConfig(initialLimit = 50): DataTableConfig<UdbParsed>
     defaultSortBy: 'udb_id',
     defaultSortOrder: 'desc',
     enableFilters: true,
-    enableColumnVisibility: true,
-    enableTextSize: true,
-    enableDensity: true,
   };
 }
 

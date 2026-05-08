@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getImageFileById, updateImageFile } from "@/lib/image-access";
+import { getImageFileById, updateImageFile, deleteImageFile } from "@/lib/image-access";
 
 export async function GET(
   request: NextRequest,
@@ -66,6 +66,34 @@ export async function PATCH(
           error instanceof Error
             ? error.message
             : "Failed to update image file",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const deleted = await deleteImageFile(id);
+
+    if (!deleted) {
+      return NextResponse.json(
+        { error: "Image file not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting image file:", error);
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to delete image file",
       },
       { status: 500 }
     );

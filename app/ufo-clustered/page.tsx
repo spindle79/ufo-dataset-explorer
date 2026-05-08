@@ -1,11 +1,20 @@
 import UfoClusteredExplorer from "../components/UfoClusteredExplorer";
-import Navigation from "../components/Navigation";
+import Breadcrumbs from "../components/shared/Breadcrumbs";
+import { Search } from "lucide-react";
 
 export default function UfoClusteredPage() {
   return (
     <main className="min-h-screen p-8 min-w-screen">
       <div>
-        <Navigation showBackButton={true} />
+        <Breadcrumbs
+          items={[
+            {
+              label: "UFO Clustered Dataset",
+              icon: <Search className="w-4 h-4" />,
+            },
+          ]}
+          className="mb-4"
+        />
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4">
             UFO Clustered Dataset Explorer

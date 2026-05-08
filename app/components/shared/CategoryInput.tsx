@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, KeyboardEvent } from "react";
 import { X } from "lucide-react";
+import Tooltip from "./Tooltip";
 
 interface CategoryInputProps {
   value: string[];
@@ -129,14 +130,20 @@ export default function CategoryInput({
           >
             {category}
             {!disabled && (
-              <button
-                type="button"
-                onClick={() => handleRemoveCategory(category)}
-                className="hover:text-blue-600 dark:hover:text-blue-300 focus:outline-none transition-colors"
-                aria-label={`Remove ${category}`}
+              <Tooltip
+                id={`remove-category-${index}`}
+                content={`Remove <b>${category}</b> category`}
+                html
               >
-                <X className="w-4 h-4" />
-              </button>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveCategory(category)}
+                  className="hover:text-blue-600 dark:hover:text-blue-300 focus:outline-none transition-colors"
+                  aria-label={`Remove ${category}`}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </Tooltip>
             )}
           </span>
         ))}

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import Navigation from "../../components/Navigation";
 import Tabs from "../../components/Tabs";
 import Breadcrumbs from "../../components/shared/Breadcrumbs";
 import type { ImageFile } from "../../lib/image-types";
@@ -26,6 +25,7 @@ import FormTextarea from "../../components/shared/FormTextarea";
 import FormFileInput from "../../components/shared/FormFileInput";
 import FormError from "../../components/shared/FormError";
 import FormButton from "../../components/shared/FormButton";
+import Tooltip from "../../components/shared/Tooltip";
 import GenerationModal, {
   GenerationPreview,
 } from "../../components/shared/GenerationModal";
@@ -864,30 +864,48 @@ export default function ImageDetailPage() {
           </div>
         </div>
         <div className="flex gap-2 flex-shrink-0">
-          <FormButton
-            onClick={handleDownload}
-            variant="success"
-            className="flex items-center gap-1.5 text-sm px-3 py-1.5"
+          <Tooltip
+            id="download-image-detail"
+            content="Download <b>image file</b> to your device"
+            html
           >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Download</span>
-          </FormButton>
-          <FormButton
-            onClick={handleOpenDescriptionModal}
-            variant="primary"
-            className="flex items-center gap-1.5 text-sm px-3 py-1.5"
+            <FormButton
+              onClick={handleDownload}
+              variant="success"
+              className="flex items-center gap-1.5 text-sm px-3 py-1.5"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Download</span>
+            </FormButton>
+          </Tooltip>
+          <Tooltip
+            id="transcribe-describe-image"
+            content="Generate <u>AI description</u> or transcription"
+            html
           >
-            <Wand2 className="w-4 h-4" />
-            <span className="hidden sm:inline">Transcribe/Describe</span>
-          </FormButton>
-          <FormButton
-            onClick={handleOpenEditModal}
-            variant="primary"
-            className="flex items-center gap-1.5 text-sm px-3 py-1.5"
+            <FormButton
+              onClick={handleOpenDescriptionModal}
+              variant="primary"
+              className="flex items-center gap-1.5 text-sm px-3 py-1.5"
+            >
+              <Wand2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Transcribe/Describe</span>
+            </FormButton>
+          </Tooltip>
+          <Tooltip
+            id="edit-image-detail"
+            content="Edit image <b>metadata</b> and details"
+            html
           >
-            <Edit className="w-4 h-4" />
-            <span className="hidden sm:inline">Edit</span>
-          </FormButton>
+            <FormButton
+              onClick={handleOpenEditModal}
+              variant="primary"
+              className="flex items-center gap-1.5 text-sm px-3 py-1.5"
+            >
+              <Edit className="w-4 h-4" />
+              <span className="hidden sm:inline">Edit</span>
+            </FormButton>
+          </Tooltip>
         </div>
       </div>
 

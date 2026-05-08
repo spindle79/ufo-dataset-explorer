@@ -3,6 +3,8 @@
  */
 
 import * as cheerio from "cheerio";
+// @ts-ignore - mime-types types may not be properly resolved
+import * as mime from "mime-types";
 
 export type LinkType =
   | "link"
@@ -33,6 +35,12 @@ function resolveUrl(baseUrl: string, relativeUrl: string): string | null {
       return relativeUrl;
     }
 
+    // Handle protocol-relative URLs (starting with //)
+    if (relativeUrl.startsWith("//")) {
+      const base = new URL(baseUrl);
+      return `${base.protocol}${relativeUrl}`;
+    }
+
     // If it's a data URL, return as-is
     if (relativeUrl.startsWith("data:")) {
       return null; // Skip data URLs
@@ -51,105 +59,80 @@ function resolveUrl(baseUrl: string, relativeUrl: string): string | null {
  * Check if a URL is an audio file
  */
 function isAudioUrl(url: string): boolean {
-  const audioExtensions = [
-    ".mp3",
-    ".wav",
-    ".ogg",
-    ".m4a",
-    ".aac",
-    ".flac",
-    ".webm",
-  ];
-  const lowerUrl = url.toLowerCase();
-  return (
-    audioExtensions.some((ext) => lowerUrl.includes(ext)) ||
-    lowerUrl.includes("/audio/") ||
-    !!lowerUrl.match(/audio\/[^/]+$/i)
-  );
+  // Remove query parameters and hash for extension checking
+  const urlWithoutQuery = url.split("?")[0].split("#")[0];
+
+  // Get MIME type from the URL
+  const mimeType = mime.lookup(urlWithoutQuery);
+
+  // Check if it's an audio MIME type
+  return mimeType !== false && mimeType.startsWith("audio/");
 }
 
 /**
  * Check if a URL is a video file
  */
 function isVideoUrl(url: string): boolean {
-  const videoExtensions = [
-    ".mp4",
-    ".webm",
-    ".ogg",
-    ".mov",
-    ".avi",
-    ".mkv",
-    ".flv",
-    ".wmv",
-  ];
-  const lowerUrl = url.toLowerCase();
-  return (
-    videoExtensions.some((ext) => lowerUrl.includes(ext)) ||
-    lowerUrl.includes("/video/") ||
-    !!lowerUrl.match(/video\/[^/]+$/i)
-  );
+  // Remove query parameters and hash for extension checking
+  const urlWithoutQuery = url.split("?")[0].split("#")[0];
+
+  // Get MIME type from the URL
+  const mimeType = mime.lookup(urlWithoutQuery);
+
+  // Check if it's a video MIME type
+  return mimeType !== false && mimeType.startsWith("video/");
 }
 
 /**
  * Check if a URL is an image file
  */
 function isImageUrl(url: string): boolean {
-  const imageExtensions = [
-    ".jpg",
-    ".jpeg",
-    ".png",
-    ".gif",
-    ".webp",
-    ".svg",
-    ".bmp",
-    ".ico",
-  ];
-  const lowerUrl = url.toLowerCase();
-  return (
-    imageExtensions.some((ext) => lowerUrl.includes(ext)) ||
-    lowerUrl.includes("/image/") ||
-    !!lowerUrl.match(/image\/[^/]+$/i)
-  );
+  // Remove query parameters and hash for extension checking
+  const urlWithoutQuery = url.split("?")[0].split("#")[0];
+
+  // Get MIME type from the URL
+  const mimeType = mime.lookup(urlWithoutQuery);
+
+  // Check if it's an image MIME type
+  return mimeType !== false && mimeType.startsWith("image/");
 }
 
 /**
  * Check if a URL is a PDF file
  */
 function isPdfUrl(url: string): boolean {
-  const lowerUrl = url.toLowerCase();
-  return (
-    lowerUrl.endsWith(".pdf") ||
-    lowerUrl.includes(".pdf?") ||
-    lowerUrl.includes("/pdf/") ||
-    !!lowerUrl.match(/pdf\/[^/]+$/i) ||
-    lowerUrl.includes("application/pdf")
-  );
+  // Remove query parameters and hash for extension checking
+  const urlWithoutQuery = url.split("?")[0].split("#")[0];
+
+  // Get MIME type from the URL
+  const mimeType = mime.lookup(urlWithoutQuery);
+
+  // Check if it's a PDF MIME type
+  return mimeType === "application/pdf";
 }
 
 /**
  * Check if a URL is a text file
  */
 function isTextUrl(url: string): boolean {
-  const textExtensions = [
-    ".txt",
-    ".text",
-    ".md",
-    ".markdown",
-    ".csv",
-    ".json",
-    ".xml",
-    ".html",
-    ".htm",
-    ".log",
-    ".rtf",
-  ];
-  const lowerUrl = url.toLowerCase();
+  // Remove query parameters and hash for extension checking
+  const urlWithoutQuery = url.split("?")[0].split("#")[0];
+
+  // Get MIME type from the URL
+  const mimeType = mime.lookup(urlWithoutQuery);
+
+  // Check if it's a text MIME type (text/* or specific text-based application types)
+  if (mimeType === false) return false;
+
   return (
-    textExtensions.some(
-      (ext) => lowerUrl.endsWith(ext) || lowerUrl.includes(`${ext}?`)
-    ) ||
-    lowerUrl.includes("/text/") ||
-    !!lowerUrl.match(/text\/[^/]+$/i)
+    mimeType.startsWith("text/") ||
+    mimeType === "application/json" ||
+    mimeType === "application/xml" ||
+    mimeType === "application/javascript" ||
+    mimeType === "application/typescript" ||
+    mimeType === "application/x-sh" ||
+    mimeType === "application/x-csv" ||
+    mimeType === "text/csv"
   );
 }
 
@@ -176,16 +159,17 @@ export function extractLinksFromHtml(
     const text = $(element).text().trim();
 
     // Check if it's an audio/video/image/pdf/text link
+    // Check both resolved URL and original href (in case resolution changes detection)
     let type: LinkType = "link";
-    if (isAudioUrl(resolvedUrl)) {
+    if (isAudioUrl(resolvedUrl) || isAudioUrl(href)) {
       type = "audio";
-    } else if (isVideoUrl(resolvedUrl)) {
+    } else if (isVideoUrl(resolvedUrl) || isVideoUrl(href)) {
       type = "video";
-    } else if (isImageUrl(resolvedUrl)) {
+    } else if (isImageUrl(resolvedUrl) || isImageUrl(href)) {
       type = "image";
-    } else if (isPdfUrl(resolvedUrl)) {
+    } else if (isPdfUrl(resolvedUrl) || isPdfUrl(href)) {
       type = "pdf";
-    } else if (isTextUrl(resolvedUrl)) {
+    } else if (isTextUrl(resolvedUrl) || isTextUrl(href)) {
       type = "text";
     }
 
@@ -207,9 +191,12 @@ export function extractLinksFromHtml(
     seenUrls.add(resolvedUrl);
     const alt = $(element).attr("alt") || undefined;
 
+    // Verify it's actually an image (check both resolved and original)
+    const isImage = isImageUrl(resolvedUrl) || isImageUrl(src);
+
     links.push({
       url: resolvedUrl,
-      type: "image",
+      type: isImage ? "image" : "link",
       alt,
     });
   });
@@ -224,9 +211,12 @@ export function extractLinksFromHtml(
 
     seenUrls.add(resolvedUrl);
 
+    // Verify it's actually audio (check both resolved and original)
+    const isAudio = isAudioUrl(resolvedUrl) || isAudioUrl(src);
+
     links.push({
       url: resolvedUrl,
-      type: "audio",
+      type: isAudio ? "audio" : "link",
     });
   });
 
@@ -241,9 +231,24 @@ export function extractLinksFromHtml(
     seenUrls.add(resolvedUrl);
     const parentTag = $(element).parent().prop("tagName")?.toLowerCase();
 
+    // Determine type based on parent tag and URL pattern (check both resolved and original)
+    let type: LinkType = "link";
+    if (parentTag === "audio") {
+      type = isAudioUrl(resolvedUrl) || isAudioUrl(src) ? "audio" : "link";
+    } else if (parentTag === "video") {
+      type = isVideoUrl(resolvedUrl) || isVideoUrl(src) ? "video" : "link";
+    } else {
+      // Fallback: check URL patterns
+      if (isAudioUrl(resolvedUrl) || isAudioUrl(src)) {
+        type = "audio";
+      } else if (isVideoUrl(resolvedUrl) || isVideoUrl(src)) {
+        type = "video";
+      }
+    }
+
     links.push({
       url: resolvedUrl,
-      type: parentTag === "audio" ? "audio" : "video",
+      type,
     });
   });
 
@@ -257,9 +262,12 @@ export function extractLinksFromHtml(
 
     seenUrls.add(resolvedUrl);
 
+    // Verify it's actually a video (check both resolved and original)
+    const isVideo = isVideoUrl(resolvedUrl) || isVideoUrl(src);
+
     links.push({
       url: resolvedUrl,
-      type: "video",
+      type: isVideo ? "video" : "link",
     });
   });
 
@@ -285,6 +293,66 @@ export function extractLinksFromHtml(
     links.push({
       url: resolvedUrl,
       type: isVideoEmbed ? "video" : "iframe",
+    });
+  });
+
+  // Extract object tags (can contain audio/video via data attribute)
+  $("object[data]").each((_, element) => {
+    const data = $(element).attr("data");
+    if (!data) return;
+
+    const resolvedUrl = resolveUrl(baseUrl, data);
+    if (!resolvedUrl || seenUrls.has(resolvedUrl)) return;
+
+    seenUrls.add(resolvedUrl);
+
+    // Determine type based on URL (check both resolved and original)
+    let type: LinkType = "link";
+    if (isAudioUrl(resolvedUrl) || isAudioUrl(data)) {
+      type = "audio";
+    } else if (isVideoUrl(resolvedUrl) || isVideoUrl(data)) {
+      type = "video";
+    } else if (isImageUrl(resolvedUrl) || isImageUrl(data)) {
+      type = "image";
+    } else if (isPdfUrl(resolvedUrl) || isPdfUrl(data)) {
+      type = "pdf";
+    } else if (isTextUrl(resolvedUrl) || isTextUrl(data)) {
+      type = "text";
+    }
+
+    links.push({
+      url: resolvedUrl,
+      type,
+    });
+  });
+
+  // Extract embed tags (can contain audio/video via src attribute)
+  $("embed[src]").each((_, element) => {
+    const src = $(element).attr("src");
+    if (!src) return;
+
+    const resolvedUrl = resolveUrl(baseUrl, src);
+    if (!resolvedUrl || seenUrls.has(resolvedUrl)) return;
+
+    seenUrls.add(resolvedUrl);
+
+    // Determine type based on URL (check both resolved and original)
+    let type: LinkType = "link";
+    if (isAudioUrl(resolvedUrl) || isAudioUrl(src)) {
+      type = "audio";
+    } else if (isVideoUrl(resolvedUrl) || isVideoUrl(src)) {
+      type = "video";
+    } else if (isImageUrl(resolvedUrl) || isImageUrl(src)) {
+      type = "image";
+    } else if (isPdfUrl(resolvedUrl) || isPdfUrl(src)) {
+      type = "pdf";
+    } else if (isTextUrl(resolvedUrl) || isTextUrl(src)) {
+      type = "text";
+    }
+
+    links.push({
+      url: resolvedUrl,
+      type,
     });
   });
 

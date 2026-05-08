@@ -571,6 +571,28 @@ export interface LocationsUpdate {
 }
 
 /**
+ * Companies Table
+ * Stores information about companies referenced in the dataset
+ */
+export interface Companies {
+  id: string; // UUID
+  name: string; // Primary name of the company
+  aliases: string[]; // Array of alternative names/references
+  created_at: string; // ISO timestamp
+  updated_at: string; // ISO timestamp
+}
+
+export interface CompaniesCreate {
+  name: string;
+  aliases?: string[];
+}
+
+export interface CompaniesUpdate {
+  name?: string;
+  aliases?: string[];
+}
+
+/**
  * Programs Table
  * Stores information about programs referenced in the dataset
  */
@@ -602,6 +624,44 @@ export interface NormalizedDataUpdate {
   categories?: string[];
   date?: string | null;
   metadata?: Record<string, any>;
+}
+
+/**
+ * Duplicate Pairs Table
+ * Tracks potential duplicate records for review
+ */
+export interface DuplicatePair {
+  id: string; // UUID
+  entity_type: string; // Type of entity: 'audio', 'video', 'pdf', 'image', 'scrape', 'people', 'locations', 'companies', 'programs'
+  record1_id: string; // UUID - First record ID
+  record2_id: string; // UUID - Second record ID
+  similarity_score: number; // Similarity score (0.0 to 1.0)
+  similarity_reasons: string[]; // Array of reasons why they're similar
+  status: "pending" | "not_duplicate" | "merged" | "skipped"; // Status
+  merge_data: Record<string, any>; // Field selection for merge (if merged)
+  reviewed_at: string | null; // ISO timestamp
+  reviewed_by: string | null; // User who reviewed
+  created_at: string; // ISO timestamp
+  updated_at: string; // ISO timestamp
+}
+
+export interface DuplicatePairCreate {
+  entity_type: string;
+  record1_id: string;
+  record2_id: string;
+  similarity_score?: number;
+  similarity_reasons?: string[];
+  status?: "pending" | "not_duplicate" | "merged" | "skipped";
+  merge_data?: Record<string, any>;
+  reviewed_at?: string | null;
+  reviewed_by?: string | null;
+}
+
+export interface DuplicatePairUpdate {
+  status?: "pending" | "not_duplicate" | "merged" | "skipped";
+  merge_data?: Record<string, any>;
+  reviewed_at?: string | null;
+  reviewed_by?: string | null;
 }
 
 /**
@@ -645,10 +705,20 @@ export type Database = {
         Insert: LocationsCreate;
         Update: LocationsUpdate;
       };
+      companies: {
+        Row: Companies;
+        Insert: CompaniesCreate;
+        Update: CompaniesUpdate;
+      };
       programs: {
         Row: Programs;
         Insert: ProgramsCreate;
         Update: ProgramsUpdate;
+      };
+      duplicate_pairs: {
+        Row: DuplicatePair;
+        Insert: DuplicatePairCreate;
+        Update: DuplicatePairUpdate;
       };
     };
   };

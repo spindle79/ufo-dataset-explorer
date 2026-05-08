@@ -1,12 +1,21 @@
 "use client";
 
 import EntityTab from "./EntityTab";
+import PeopleDataTable from "../PeopleDataTable";
+import { getPeopleTableConfig } from "@/lib/people-table-config";
+import type { SourceType } from "@/lib/entity-relationships";
 
 interface PeopleTabProps {
   content: string | null;
+  sourceType?: SourceType;
+  sourceId?: string;
 }
 
-export default function PeopleTab({ content }: PeopleTabProps) {
+export default function PeopleTab({
+  content,
+  sourceType,
+  sourceId,
+}: PeopleTabProps) {
   const handleExtract = async (content: string) => {
     const response = await fetch("/api/entities/extract", {
       method: "POST",
@@ -27,10 +36,16 @@ export default function PeopleTab({ content }: PeopleTabProps) {
     const results = [];
     for (const entity of entities) {
       try {
+        const body: any = { ...entity };
+        if (sourceType && sourceId) {
+          body.source_type = sourceType;
+          body.source_id = sourceId;
+        }
+
         const response = await fetch("/api/entities/people", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(entity),
+          body: JSON.stringify(body),
         });
 
         if (response.ok) {
@@ -51,7 +66,13 @@ export default function PeopleTab({ content }: PeopleTabProps) {
   };
 
   const fetchExisting = async () => {
-    const response = await fetch("/api/entities/people");
+    const url = new URL("/api/entities/people", window.location.origin);
+    if (sourceType && sourceId) {
+      url.searchParams.set("source_type", sourceType);
+      url.searchParams.set("source_id", sourceId);
+    }
+
+    const response = await fetch(url.toString());
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       const errorMessage =
@@ -62,6 +83,31 @@ export default function PeopleTab({ content }: PeopleTabProps) {
     return data.people || [];
   };
 
+  // If we have source info, show the DataTable with actions
+  if (sourceType && sourceId) {
+    return (
+      <div className="space-y-6">
+        <EntityTab
+          entityType="people"
+          entityLabel="People"
+          content={content}
+          onExtract={handleExtract}
+          onSave={handleSave}
+          fetchExisting={fetchExisting}
+        />
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold mb-4">People from this source</h3>
+          <PeopleDataTable 
+            initialLimit={50}
+            sourceType={sourceType}
+            sourceId={sourceId}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Otherwise, show the regular EntityTab
   return (
     <EntityTab
       entityType="people"

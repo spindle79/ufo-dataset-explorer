@@ -9,35 +9,43 @@ import SharedPdfViewer from "../shared/PdfViewer";
 import { AiGeneration } from "../shared/GenerationViewer";
 import { ServiceOption } from "../shared/ServiceSelector";
 import Modal from "../shared/Modal";
+import Tooltip from "../shared/Tooltip";
+import ViewModeToggle, { ViewMode as ViewModeType } from "../shared/ViewModeToggle";
+import ShowExcludedToggle from "../shared/ShowExcludedToggle";
+import IncludeButton from "../shared/IncludeButton";
+import ViewDetailsButton from "../shared/ViewDetailsButton";
+import EditButton from "../shared/EditButton";
+import DownloadButton from "../shared/DownloadButton";
+import ExcludeButton from "../shared/ExcludeButton";
+import ProcessButton from "../shared/ProcessButton";
+import SortIcon from "../shared/SortIcon";
+import DeleteButton from "../shared/DeleteButton";
+import IconActionButton from "../shared/IconActionButton";
 import UrlUploadTab from "./UrlUploadTab";
+import { decodeFileName } from "../../lib/utils";
 import {
-  Eye,
-  Download,
-  Edit,
+  formatDate,
+  includeFile,
+  excludeFile,
+  deleteFile as deleteFileOperation,
+} from "../../lib/file-operations";
+import {
   X,
-  ChevronUp,
-  ChevronDown,
-  Minus,
   FileText,
   History,
   Search,
   Clock,
-  Loader2,
-  CheckCircle,
   AlertCircle,
-  Plus,
-  List,
-  LayoutGrid,
-  Maximize2,
-  Trash2,
   Cloud,
   HardDrive,
-  Ban,
+  Loader2,
+  CheckCircle,
+  Trash2,
 } from "lucide-react";
 
 type SortField = "fileName" | "uploadedDate" | "description";
 type SortOrder = "asc" | "desc";
-type ViewMode = "condensed" | "normal" | "expanded";
+type ViewMode = ViewModeType;
 
 /**
  * Helper function to check if a file is URL-only (not downloaded)
@@ -169,6 +177,10 @@ export default function PdfViewer({
   const [processModalOpen, setProcessModalOpen] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showExcluded, setShowExcluded] = useState(false);
+  const [excludeConfirmFile, setExcludeConfirmFile] = useState<PdfFile | null>(
+    null
+  );
 
   const fetchPdfFiles = async () => {
     setLoading(true);
@@ -183,10 +195,12 @@ export default function PdfViewer({
       let filtered = filterIds
         ? data.filter((file: PdfFile) => filterIds.includes(file.id))
         : data;
-      // Filter out excluded files
-      filtered = filtered.filter(
-        (file: PdfFile) => !(file as any).metadata?.excluded
-      );
+      // Filter out excluded files unless showExcluded is true
+      if (!showExcluded) {
+        filtered = filtered.filter(
+          (file: PdfFile) => !(file as any).metadata?.excluded
+        );
+      }
       setPdfFiles(filtered);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load PDF files");
@@ -250,21 +264,29 @@ export default function PdfViewer({
     await fetchPdfFiles();
   };
 
-  const handleExclude = async (file: PdfFile) => {
-    try {
-      const response = await fetch(`/api/pdf/${file.id}/exclude`, {
-        method: "POST",
-      });
+  const handleExclude = (file: PdfFile) => {
+    setExcludeConfirmFile(file);
+  };
 
-      if (!response.ok) {
-        throw new Error("Failed to exclude file");
-      }
+  const confirmExclude = async () => {
+    if (!excludeConfirmFile) return;
 
-      // Refresh the PDF files list
-      await fetchPdfFiles();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to exclude file");
-    }
+    await excludeFile(
+      excludeConfirmFile.id,
+      "pdf",
+      fetchPdfFiles,
+      (error) => setError(error),
+      () => setExcludeConfirmFile(null)
+    );
+  };
+
+  const handleInclude = async (file: PdfFile) => {
+    await includeFile(
+      file.id,
+      "pdf",
+      fetchPdfFiles,
+      (error) => setError(error)
+    );
   };
 
   const handleRunExtraction = async (
@@ -520,76 +542,28 @@ export default function PdfViewer({
     setDeletingId(id);
     setConfirmDeleteId(null);
     setError(null);
-    try {
-      const response = await fetch(`/api/pdf/${id}`, {
-        method: "DELETE",
-      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete PDF file");
-      }
-
-      // If we're viewing this file, close the viewer
-      if (viewingId === id) {
-        setViewingId(null);
-      }
-
-      // If we're showing extractions for this file, close them
-      if (showingExtractions === id) {
-        setShowingExtractions(null);
-      }
-
-      // Refresh the list
-      await fetchPdfFiles();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to delete PDF file"
-      );
-    } finally {
-      setDeletingId(null);
+    // If we're viewing this file, close the viewer
+    if (viewingId === id) {
+      setViewingId(null);
     }
-  };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
-  };
+    // If we're showing extractions for this file, close them
+    if (showingExtractions === id) {
+      setShowingExtractions(null);
+    }
 
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <Minus className="w-4 h-4 text-gray-400" />;
-    return sortOrder === "asc" ? (
-      <ChevronUp className="w-4 h-4" />
-    ) : (
-      <ChevronDown className="w-4 h-4" />
+    await deleteFileOperation(
+      id,
+      "pdf",
+      fetchPdfFiles,
+      (error) => setError(error),
+      () => setDeletingId(null)
     );
   };
 
-  // Get padding classes based on view mode
-  const getPaddingClasses = (type: "header" | "body") => {
-    if (type === "header") {
-      switch (viewMode) {
-        case "condensed":
-          return "px-3 py-2";
-        case "normal":
-          return "px-4 py-2.5";
-        case "expanded":
-          return "px-6 py-3";
-        default:
-          return "px-4 py-2.5";
-      }
-    } else {
-      switch (viewMode) {
-        case "condensed":
-          return "px-3 py-2";
-        case "normal":
-          return "px-4 py-2.5";
-        case "expanded":
-          return "px-6 py-4";
-        default:
-          return "px-4 py-2.5";
-      }
-    }
-  };
+
+
 
   if (loading) {
     return (
@@ -611,46 +585,23 @@ export default function PdfViewer({
     <div className="w-full">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-lg font-semibold">PDF Files ({pdfFiles.length})</h3>
-        {!defaultViewMode && (
-          <div className="flex items-center gap-2">
-            {/* View Mode Toggle */}
-            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-              <button
-                onClick={() => setViewMode("condensed")}
-                className={`p-1.5 rounded transition-colors ${
-                  viewMode === "condensed"
-                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-                }`}
-                title="Condensed View"
-              >
-                <List className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode("normal")}
-                className={`p-1.5 rounded transition-colors ${
-                  viewMode === "normal"
-                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-                }`}
-                title="Normal View"
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode("expanded")}
-                className={`p-1.5 rounded transition-colors ${
-                  viewMode === "expanded"
-                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-                }`}
-                title="Expanded View"
-              >
-                <Maximize2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <ShowExcludedToggle
+            showExcluded={showExcluded}
+            onToggle={() => {
+              setShowExcluded(!showExcluded);
+              fetchPdfFiles();
+            }}
+            idPrefix="show-excluded-toggle-pdf"
+          />
+          {!filterIds && (
+            <ViewModeToggle
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              idPrefix="view-mode-pdf"
+            />
+          )}
+        </div>
       </div>
 
       {pdfFiles.length === 0 ? (
@@ -659,13 +610,14 @@ export default function PdfViewer({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <table
+            className="min-w-full divide-y divide-gray-200 dark:divide-gray-700"
+            data-view-mode={viewMode}
+          >
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
                 <th
-                  className={`${getPaddingClasses(
-                    "header"
-                  )} text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700`}
+                  className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                   onClick={() => handleSort("fileName")}
                 >
                   <div className="flex items-center gap-2">
@@ -674,9 +626,7 @@ export default function PdfViewer({
                   </div>
                 </th>
                 <th
-                  className={`${getPaddingClasses(
-                    "header"
-                  )} text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700`}
+                  className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                   onClick={() => handleSort("uploadedDate")}
                 >
                   <div className="flex items-center gap-2">
@@ -687,285 +637,268 @@ export default function PdfViewer({
                 {viewMode === "expanded" && (
                   <>
                     <th
-                      className={`${getPaddingClasses(
-                        "header"
-                      )} text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700`}
+                      className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                       onClick={() => handleSort("description")}
                     >
                       <div className="flex items-center gap-2">
                         Description
-                        <SortIcon field="description" />
+                        <SortIcon
+                          currentField={sortField}
+                          sortField="description"
+                          sortOrder={sortOrder}
+                        />
                       </div>
                     </th>
                     <th
-                      className={`${getPaddingClasses(
-                        "header"
-                      )} text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider`}
+                      className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                     >
                       Original URL
                     </th>
                     <th
-                      className={`${getPaddingClasses(
-                        "header"
-                      )} text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider`}
+                      className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                     >
                       Categories
                     </th>
                   </>
                 )}
                 <th
-                  className={`${getPaddingClasses(
-                    "header"
-                  )} text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider`}
+                  className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                 >
                   Status
                 </th>
                 <th
-                  className={`${getPaddingClasses(
-                    "header"
-                  )} text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider`}
+                  className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                 >
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-              {sortedFiles.map((file) => (
-                <React.Fragment key={file.id}>
-                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                    <td
-                      className={`${getPaddingClasses(
-                        "body"
-                      )} whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white`}
+              {sortedFiles.map((file) => {
+                const isExcluded = (file as any).metadata?.excluded;
+                return (
+                  <React.Fragment key={file.id}>
+                    <tr
+                      className={`hover:bg-gray-50 dark:hover:bg-gray-800 ${
+                        isExcluded ? "opacity-50" : ""
+                      }`}
                     >
-                      {file.fileName}
-                    </td>
-                    <td
-                      className={`${getPaddingClasses(
-                        "body"
-                      )} whitespace-nowrap text-sm text-gray-500 dark:text-gray-400`}
-                    >
-                      {formatDate(file.uploadedDate)}
-                    </td>
-                    {viewMode === "expanded" && (
-                      <>
-                        <td
-                          className={`${getPaddingClasses(
-                            "body"
-                          )} text-sm text-gray-500 dark:text-gray-400`}
-                        >
-                          <div className="max-w-xs truncate">
-                            {file.description || "—"}
-                          </div>
-                        </td>
-                        <td
-                          className={`${getPaddingClasses(
-                            "body"
-                          )} text-sm text-gray-500 dark:text-gray-400`}
-                        >
-                          {file.originalUrl ? (
-                            <a
-                              href={file.originalUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 dark:text-blue-400 hover:underline truncate block max-w-xs"
-                            >
-                              {file.originalUrl}
-                            </a>
-                          ) : (
-                            <span className="text-gray-400">
-                              Manually Uploaded
-                            </span>
-                          )}
-                        </td>
-                        <td
-                          className={`${getPaddingClasses(
-                            "body"
-                          )} text-sm text-gray-500 dark:text-gray-400`}
-                        >
-                          <div className="flex flex-wrap gap-1">
-                            {file.categories.length > 0 ? (
-                              file.categories.map((cat, idx) => (
-                                <span
-                                  key={idx}
-                                  className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs"
-                                >
-                                  {cat}
-                                </span>
-                              ))
-                            ) : (
-                              <span className="text-gray-400">—</span>
-                            )}
-                          </div>
-                        </td>
-                      </>
-                    )}
-                    <td
-                      className={`${getPaddingClasses(
-                        "body"
-                      )} whitespace-nowrap text-sm text-gray-500 dark:text-gray-400`}
-                    >
-                      <StatusBadge status={file.status} file={file} />
-                    </td>
-                    <td
-                      className={`${getPaddingClasses(
-                        "body"
-                      )} whitespace-nowrap text-sm`}
-                    >
-                      <div className="flex gap-3 items-center">
-                        {/* Show Process button for pending or discovered files */}
-                        {(file.status === "pending" ||
-                          file.status === "discovered") && (
-                          <button
-                            onClick={() => handleProcess(file)}
-                            className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 transition-colors"
-                            title="Process File"
-                          >
-                            <Plus className="w-5 h-5" />
-                          </button>
-                        )}
-                        {/* Ban/Exclude button */}
-                        <button
-                          onClick={() => handleExclude(file)}
-                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors"
-                          title="Exclude from table"
-                        >
-                          <Ban className="w-5 h-5" />
-                        </button>
-                        {/* Hide View/Download for discovered files (not yet fetched) */}
-                        {file.status !== "discovered" && (
-                          <>
-                            <button
-                              onClick={() => router.push(`/pdf/${file.id}`)}
-                              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
-                              title="View PDF detail page"
-                            >
-                              <Eye className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleDownload(file.id, file.fileName)
-                              }
-                              className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 transition-colors"
-                              title="Download"
-                            >
-                              <Download className="w-5 h-5" />
-                            </button>
-                          </>
-                        )}
-                        <button
-                          onClick={() => {
-                            setExtractModalOpen(file.id);
-                            setSelectedServices({
-                              openai: false,
-                              pdfparsenew: false,
-                            });
-                            setExtractionResults({});
-                          }}
-                          className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 transition-colors"
-                          title="Extract Text"
-                        >
-                          <FileText className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={async () => {
-                            if (showingExtractions === file.id) {
-                              setShowingExtractions(null);
-                            } else {
-                              setShowingExtractions(file.id);
-                              await fetchExtractionVersions(file.id);
-                            }
-                          }}
-                          className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 transition-colors"
-                          title={
-                            showingExtractions === file.id
-                              ? "Hide Versions"
-                              : "View Versions"
-                          }
-                        >
-                          <History className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => setConfirmDeleteId(file.id)}
-                          disabled={deletingId === file.id}
-                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Delete"
-                        >
-                          {deletingId === file.id ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-5 h-5" />
-                          )}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  {showingExtractions === file.id && (
-                    <tr className="bg-gray-50 dark:bg-gray-800">
                       <td
-                        colSpan={viewMode === "expanded" ? 7 : 4}
-                        className={getPaddingClasses("body")}
+                  className="whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white"
                       >
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-semibold text-sm">
-                              Text Extractions
-                            </h4>
-                            <button
-                              onClick={() => {
-                                setShowingExtractions(null);
+                        {file.fileName}
+                      </td>
+                      <td
+                  className="whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
+                      >
+                        {formatDate(file.uploadedDate)}
+                      </td>
+                      {viewMode === "expanded" && (
+                        <>
+                          <td
+                  className="text-sm text-gray-500 dark:text-gray-400"
+                          >
+                            <div className="max-w-xs truncate">
+                              {file.description || "—"}
+                            </div>
+                          </td>
+                          <td
+                  className="text-sm text-gray-500 dark:text-gray-400"
+                          >
+                            {file.originalUrl ? (
+                              <a
+                                href={file.originalUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 dark:text-blue-400 hover:underline truncate block max-w-xs"
+                              >
+                                {file.originalUrl}
+                              </a>
+                            ) : (
+                              <span className="text-gray-400">
+                                Manually Uploaded
+                              </span>
+                            )}
+                          </td>
+                          <td
+                  className="text-sm text-gray-500 dark:text-gray-400"
+                          >
+                            <div className="flex flex-wrap gap-1">
+                              {file.categories.length > 0 ? (
+                                file.categories.map((cat, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs"
+                                  >
+                                    {cat}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-gray-400">—</span>
+                              )}
+                            </div>
+                          </td>
+                        </>
+                      )}
+                      <td
+                  className="whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
+                      >
+                        <StatusBadge status={file.status} file={file} />
+                      </td>
+                      <td
+                  className="whitespace-nowrap text-sm"
+                      >
+                        <div className="flex gap-3 items-center">
+                          {isExcluded ? (
+                            <IncludeButton
+                              onClick={() => handleInclude(file)}
+                              id={`pdf-${file.id}`}
+                            />
+                          ) : (
+                            <>
+                              {/* Show Process button for pending or discovered files */}
+                              {(file.status === "pending" ||
+                                file.status === "discovered") && (
+                                <ProcessButton
+                                  onClick={() => handleProcess(file)}
+                                  id={file.id}
+                                  itemType="pdf"
+                                />
+                              )}
+                              <ExcludeButton
+                                onClick={() => handleExclude(file)}
+                                id={`pdf-${file.id}`}
+                              />
+                              {/* Hide View/Download for discovered files (not yet fetched) */}
+                              {file.status !== "discovered" && (
+                                <>
+                                  <ViewDetailsButton
+                                    onClick={() =>
+                                      router.push(`/pdf/${file.id}`)
+                                    }
+                                    id={file.id}
+                                    itemType="pdf"
+                                  />
+                                  <DownloadButton
+                                    onClick={() =>
+                                      handleDownload(file.id, file.fileName)
+                                    }
+                                    id={file.id}
+                                    itemType="pdf"
+                                  />
+                                </>
+                              )}
+                              <IconActionButton
+                                icon={FileText}
+                                tooltipId={`extract-pdf-${file.id}`}
+                                tooltipContent="Extract <b>text</b> from PDF"
+                                tooltipHtml
+                                onClick={() => {
+                                  setExtractModalOpen(file.id);
+                                  setSelectedServices({
+                                    openai: false,
+                                    pdfparsenew: false,
+                                  });
+                                  setExtractionResults({});
+                                }}
+                                className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300"
+                              />
+                              <IconActionButton
+                                icon={History}
+                                tooltipId={`view-extractions-pdf-${file.id}`}
+                                tooltipContent={
+                                  showingExtractions === file.id
+                                    ? "Hide <b>extraction</b> versions"
+                                    : "View <b>extraction</b> versions"
+                                }
+                                tooltipHtml
+                                onClick={async () => {
+                                  if (showingExtractions === file.id) {
+                                    setShowingExtractions(null);
+                                  } else {
+                                    setShowingExtractions(file.id);
+                                    await fetchExtractionVersions(file.id);
+                                  }
+                                }}
+                                className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300"
+                              />
+                              <DeleteButton
+                                onClick={() => setConfirmDeleteId(file.id)}
+                                id={file.id}
+                                itemType="pdf"
+                                loading={deletingId === file.id}
+                              />
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    {showingExtractions === file.id && (
+                      <tr className="bg-gray-50 dark:bg-gray-800">
+                        <td
+                          colSpan={viewMode === "expanded" ? 7 : 4}
+                        >
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-semibold text-sm">
+                                Text Extractions
+                              </h4>
+                              <button
+                                onClick={() => {
+                                  setShowingExtractions(null);
+                                }}
+                                className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                              >
+                                <X className="w-5 h-5" />
+                              </button>
+                            </div>
+                            <TranscriptionTable
+                              generations={extractionVersions[file.id] || []}
+                              currentGenerationId={
+                                currentExtractions[file.id]?.id || null
+                              }
+                              sourceType="pdf"
+                              sourceId={file.id}
+                              onSetCurrent={async (generationId) => {
+                                await handleSetCurrentExtraction(
+                                  file.id,
+                                  generationId
+                                );
                               }}
-                              className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                              onRefresh={async () => {
+                                await fetchExtractionVersions(file.id);
+                                await fetchPdfFiles();
+                              }}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    {viewingId === file.id && (
+                      <tr className="bg-gray-50 dark:bg-gray-800">
+                        <td colSpan={6} className="px-6 py-4">
+                          <div className="flex items-start gap-4">
+                            <div className="flex-1">
+                              <SharedPdfViewer
+                                src={`/api/pdf/${file.id}/file`}
+                                title={file.fileName}
+                                height="600px"
+                              />
+                            </div>
+                            <button
+                              onClick={() => setViewingId(null)}
+                              className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                              title="Close viewer"
                             >
                               <X className="w-5 h-5" />
                             </button>
                           </div>
-                          <TranscriptionTable
-                            generations={extractionVersions[file.id] || []}
-                            currentGenerationId={
-                              currentExtractions[file.id]?.id || null
-                            }
-                            sourceType="pdf"
-                            sourceId={file.id}
-                            onSetCurrent={async (generationId) => {
-                              await handleSetCurrentExtraction(
-                                file.id,
-                                generationId
-                              );
-                            }}
-                            onRefresh={async () => {
-                              await fetchExtractionVersions(file.id);
-                              await fetchPdfFiles();
-                            }}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                  {viewingId === file.id && (
-                    <tr className="bg-gray-50 dark:bg-gray-800">
-                      <td colSpan={6} className="px-6 py-4">
-                        <div className="flex items-start gap-4">
-                          <div className="flex-1">
-                            <SharedPdfViewer
-                              src={`/api/pdf/${file.id}/file`}
-                              title={file.fileName}
-                              height="600px"
-                            />
-                          </div>
-                          <button
-                            onClick={() => setViewingId(null)}
-                            className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-                            title="Close viewer"
-                          >
-                            <X className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              ))}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -1094,6 +1027,41 @@ export default function PdfViewer({
             </div>
           );
         })()}
+
+      {/* Exclude Confirmation Modal */}
+      <Modal
+        isOpen={excludeConfirmFile !== null}
+        onClose={() => setExcludeConfirmFile(null)}
+        title="Confirm Exclude"
+        maxWidth="md"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700 dark:text-gray-300">
+            Are you sure you want to exclude this file from the table?
+          </p>
+          {excludeConfirmFile && (
+            <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {decodeFileName(excludeConfirmFile.fileName)}
+              </p>
+            </div>
+          )}
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setExcludeConfirmFile(null)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmExclude}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Exclude
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

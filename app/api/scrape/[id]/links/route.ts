@@ -13,7 +13,7 @@ import {
 
 interface LinkWithStatus extends ExtractedLink {
   existingRecord?: {
-    type: "scrape" | "audio" | "pdf" | "video";
+    type: "scrape" | "audio" | "pdf" | "video" | "image";
     id: string;
     href: string;
   };
@@ -94,6 +94,22 @@ async function checkUrlExists(
     };
   }
 
+  // Check original_uploads for image files using indexed canonical_url column
+  const { data: imageFile } = await supabase
+    .from("original_uploads")
+    .select("id")
+    .eq("dataset_type", "image")
+    .eq("canonical_url", canonical)
+    .maybeSingle();
+
+  if (imageFile) {
+    return {
+      type: "image",
+      id: imageFile.id,
+      href: `/image/${imageFile.id}`,
+    };
+  }
+
   return null;
 }
 
@@ -149,18 +165,19 @@ export async function GET(
       searchParams.get("create_relationships") === "true";
 
     if (createRelationships) {
-      // Filter to only audio, PDF, and video links that don't already have records
+      // Filter to only audio, PDF, video, and image links that don't already have records
       const discoveredLinks: DiscoveredLink[] = extractedLinks
         .filter(
           (link) =>
             (link.type === "audio" ||
               link.type === "pdf" ||
-              link.type === "video") &&
+              link.type === "video" ||
+              link.type === "image") &&
             !linksWithStatus.find((l) => l.url === link.url)?.existingRecord
         )
         .map((link) => ({
           url: link.url,
-          type: link.type as "audio" | "pdf" | "video",
+          type: link.type as "audio" | "pdf" | "video" | "image",
           text: link.text,
           alt: link.alt,
         }));

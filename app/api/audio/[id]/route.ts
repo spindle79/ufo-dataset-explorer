@@ -3,6 +3,40 @@ import { getAudioFileById, updateAudioFile } from "@/lib/audio-access";
 import { createAdminClient } from "@/lib/supabase/server";
 import type { OriginalUploadUpdate } from "@/lib/supabase-types";
 
+/**
+ * GET /api/audio/[id]
+ * Get an audio file by ID
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const audioFile = await getAudioFileById(id);
+
+    if (!audioFile) {
+      return NextResponse.json(
+        { error: "Audio file not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(audioFile);
+  } catch (error) {
+    console.error("Error fetching audio file:", error);
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch audio file",
+      },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

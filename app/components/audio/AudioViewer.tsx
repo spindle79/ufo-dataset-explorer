@@ -6,37 +6,43 @@ import { AudioFile } from "../../lib/audio-types";
 import TranscriptionTable from "../shared/TranscriptionTable";
 import AudioPlayer from "../shared/AudioPlayer";
 import { decodeFileName } from "../../lib/utils";
+import {
+  formatDate,
+  includeFile,
+  excludeFile,
+} from "../../lib/file-operations";
 import UrlUploadTab from "./UrlUploadTab";
 import Modal from "../shared/Modal";
+import Tooltip from "../shared/Tooltip";
+import ViewModeToggle, { ViewMode as ViewModeType } from "../shared/ViewModeToggle";
+import ShowExcludedToggle from "../shared/ShowExcludedToggle";
+import ViewerHeader from "../shared/ViewerHeader";
+import IncludeButton from "../shared/IncludeButton";
+import ViewDetailsButton from "../shared/ViewDetailsButton";
+import EditButton from "../shared/EditButton";
+import DownloadButton from "../shared/DownloadButton";
+import ExcludeButton from "../shared/ExcludeButton";
+import ProcessButton from "../shared/ProcessButton";
+import SortIcon from "../shared/SortIcon";
+import IconActionButton from "../shared/IconActionButton";
 import {
   AudioLines,
   Loader2,
   Play,
   Pause,
-  Download,
   FileText,
   X,
-  ChevronUp,
-  ChevronDown,
-  Minus,
-  Edit,
-  Save,
-  Eye,
-  LayoutGrid,
-  List,
-  Maximize2,
   AlertCircle,
   CheckCircle,
   Clock,
   Search,
-  Plus,
   Cloud,
   HardDrive,
-  Ban,
 } from "lucide-react";
 
 type SortField = "fileName" | "uploadedDate" | "description";
 type SortOrder = "asc" | "desc";
+type ViewMode = ViewModeType;
 
 interface TranscriptPreview {
   transcript: string;
@@ -207,6 +213,9 @@ export default function AudioViewer({
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(
     null
   );
+  const [showExcluded, setShowExcluded] = useState(false);
+  const [excludeConfirmFile, setExcludeConfirmFile] =
+    useState<AudioFile | null>(null);
 
   const fetchAudioFiles = async () => {
     setLoading(true);
@@ -221,10 +230,12 @@ export default function AudioViewer({
       let filtered = filterIds
         ? data.filter((file: AudioFile) => filterIds.includes(file.id))
         : data;
-      // Filter out excluded files
-      filtered = filtered.filter(
-        (file: AudioFile) => !(file as any).metadata?.excluded
-      );
+      // Filter out excluded files unless showExcluded is true
+      if (!showExcluded) {
+        filtered = filtered.filter(
+          (file: AudioFile) => !(file as any).metadata?.excluded
+        );
+      }
       setAudioFiles(filtered);
     } catch (err) {
       setError(
@@ -648,62 +659,32 @@ export default function AudioViewer({
     await fetchAudioFiles();
   };
 
-  const handleExclude = async (file: AudioFile) => {
-    try {
-      const response = await fetch(`/api/audio/${file.id}/exclude`, {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to exclude file");
-      }
-
-      // Refresh the audio files list
-      await fetchAudioFiles();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to exclude file");
-    }
+  const handleExclude = (file: AudioFile) => {
+    setExcludeConfirmFile(file);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
-  };
+  const confirmExclude = async () => {
+    if (!excludeConfirmFile) return;
 
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <Minus className="w-4 h-4 text-gray-400" />;
-    return sortOrder === "asc" ? (
-      <ChevronUp className="w-4 h-4" />
-    ) : (
-      <ChevronDown className="w-4 h-4" />
+    await excludeFile(
+      excludeConfirmFile.id,
+      "audio",
+      fetchAudioFiles,
+      (error) => setError(error),
+      () => setExcludeConfirmFile(null)
     );
   };
 
-  // Get padding classes based on view mode
-  const getPaddingClasses = (type: "header" | "body") => {
-    if (type === "header") {
-      switch (viewMode) {
-        case "condensed":
-          return "px-3 py-2";
-        case "normal":
-          return "px-4 py-2.5";
-        case "expanded":
-          return "px-6 py-3";
-        default:
-          return "px-4 py-2.5";
-      }
-    } else {
-      switch (viewMode) {
-        case "condensed":
-          return "px-3 py-2";
-        case "normal":
-          return "px-4 py-2.5";
-        case "expanded":
-          return "px-6 py-4";
-        default:
-          return "px-4 py-2.5";
-      }
-    }
+  const handleInclude = async (file: AudioFile) => {
+    await includeFile(
+      file.id,
+      "audio",
+      fetchAudioFiles,
+      (error) => setError(error)
+    );
   };
+
+
 
   if (loading) {
     return (
@@ -725,51 +706,19 @@ export default function AudioViewer({
 
   return (
     <div className="w-full">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold">
-          Audio Files ({audioFiles.length})
-        </h3>
-        {!defaultViewMode && (
-          <div className="flex items-center gap-2">
-            {/* View Mode Toggle */}
-            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-              <button
-                onClick={() => setViewMode("condensed")}
-                className={`p-1.5 rounded transition-colors ${
-                  viewMode === "condensed"
-                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-                }`}
-                title="Condensed View"
-              >
-                <List className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode("normal")}
-                className={`p-1.5 rounded transition-colors ${
-                  viewMode === "normal"
-                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-                }`}
-                title="Normal View"
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode("expanded")}
-                className={`p-1.5 rounded transition-colors ${
-                  viewMode === "expanded"
-                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-                }`}
-                title="Expanded View"
-              >
-                <Maximize2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      <ViewerHeader
+        title="Audio Files"
+        count={audioFiles.length}
+        showExcluded={showExcluded}
+        onToggleExcluded={() => {
+          setShowExcluded(!showExcluded);
+          fetchAudioFiles();
+        }}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        filterIds={filterIds}
+        idPrefix="audio"
+      />
 
       {audioFiles.length === 0 ? (
         <div className="text-center py-8 text-gray-600 dark:text-gray-400">
@@ -777,290 +726,294 @@ export default function AudioViewer({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <table
+            className="min-w-full divide-y divide-gray-200 dark:divide-gray-700"
+            data-view-mode={viewMode}
+          >
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
                 <th
-                  className={`${getPaddingClasses(
-                    "header"
-                  )} text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700`}
+                  className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                   onClick={() => handleSort("fileName")}
                 >
                   <div className="flex items-center gap-2">
                     File Name
-                    <SortIcon field="fileName" />
+                    <SortIcon
+                      currentField={sortField}
+                      sortField="fileName"
+                      sortOrder={sortOrder}
+                    />
                   </div>
                 </th>
                 <th
-                  className={`${getPaddingClasses(
-                    "header"
-                  )} text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700`}
+                  className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                   onClick={() => handleSort("uploadedDate")}
                 >
                   <div className="flex items-center gap-2">
                     Uploaded Date
-                    <SortIcon field="uploadedDate" />
+                    <SortIcon
+                      currentField={sortField}
+                      sortField="uploadedDate"
+                      sortOrder={sortOrder}
+                    />
                   </div>
                 </th>
                 <th
-                  className={`${getPaddingClasses(
-                    "header"
-                  )} text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider`}
+                  className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                 >
                   Status
                 </th>
                 <th
-                  className={`${getPaddingClasses(
-                    "header"
-                  )} text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider`}
+                  className="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                 >
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-              {sortedFiles.map((file) => (
-                <React.Fragment key={file.id}>
-                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                    <td
-                      className={`${getPaddingClasses(
-                        "body"
-                      )} whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white`}
+              {sortedFiles.map((file) => {
+                const isExcluded = (file as any).metadata?.excluded;
+                return (
+                  <React.Fragment key={file.id}>
+                    <tr
+                      className={`hover:bg-gray-50 dark:hover:bg-gray-800 ${
+                        isExcluded ? "opacity-50" : ""
+                      }`}
                     >
-                      {decodeFileName(file.fileName)}
-                    </td>
-                    <td
-                      className={`${getPaddingClasses(
-                        "body"
-                      )} whitespace-nowrap text-sm text-gray-500 dark:text-gray-400`}
-                    >
-                      {formatDate(file.uploadedDate)}
-                    </td>
-                    <td
-                      className={`${getPaddingClasses(
-                        "body"
-                      )} whitespace-nowrap text-sm`}
-                    >
-                      <StatusBadge status={file.status} file={file} />
-                    </td>
-                    <td
-                      className={`${getPaddingClasses(
-                        "body"
-                      )} whitespace-nowrap text-sm`}
-                    >
-                      <div className="flex gap-3 items-center">
-                        <button
-                          onClick={() => router.push(`/audio/${file.id}`)}
-                          className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300 transition-colors"
-                          title="View Details"
-                        >
-                          <Eye className="w-5 h-5" />
-                        </button>
-                        {/* Show Process button for pending or discovered files */}
-                        {(file.status === "pending" ||
-                          file.status === "discovered") && (
-                          <button
-                            onClick={() => handleProcess(file)}
-                            className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 transition-colors"
-                            title="Process File"
-                          >
-                            <Plus className="w-5 h-5" />
-                          </button>
-                        )}
-                        {/* Ban/Exclude button */}
-                        <button
-                          onClick={() => handleExclude(file)}
-                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors"
-                          title="Exclude from table"
-                        >
-                          <Ban className="w-5 h-5" />
-                        </button>
-                        {/* Hide Play/Download for discovered files (not yet fetched) */}
-                        {file.status !== "discovered" && (
-                          <>
-                            <button
-                              onClick={() => handlePlay(file.id)}
-                              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
-                              title={playingId === file.id ? "Stop" : "Play"}
-                            >
-                              {playingId === file.id ? (
-                                <Pause className="w-5 h-5" />
-                              ) : (
-                                <Play className="w-5 h-5" />
-                              )}
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleDownload(file.id, file.fileName)
-                              }
-                              className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 transition-colors"
-                              title="Download"
-                            >
-                              <Download className="w-5 h-5" />
-                            </button>
-                          </>
-                        )}
-                        {/* Show Transcribe and Edit buttons only for files that are not pending or discovered */}
-                        {file.status !== "pending" &&
-                          file.status !== "discovered" && (
+                      <td
+                  className="whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white"
+                      >
+                        {decodeFileName(file.fileName)}
+                      </td>
+                      <td
+                  className="whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
+                      >
+                        {formatDate(file.uploadedDate)}
+                      </td>
+                      <td
+                  className="whitespace-nowrap text-sm"
+                      >
+                        <StatusBadge status={file.status} file={file} />
+                      </td>
+                      <td
+                  className="whitespace-nowrap text-sm"
+                      >
+                        <div className="flex gap-3 items-center">
+                          {isExcluded ? (
+                            <IncludeButton
+                              onClick={() => handleInclude(file)}
+                              id={`audio-${file.id}`}
+                            />
+                          ) : (
                             <>
-                              <button
-                                onClick={() =>
-                                  handleOpenTranscribeModal(file.id)
-                                }
-                                className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 transition-colors"
-                                title="Transcribe"
-                              >
-                                <AudioLines className="w-5 h-5" />
-                              </button>
-                              {currentTranscripts[file.id] && (
-                                <button
-                                  onClick={() => {
-                                    if (showingTranscripts === file.id) {
-                                      setShowingTranscripts(null);
-                                    } else {
-                                      setShowingTranscripts(file.id);
-                                      fetchTranscriptVersions(file.id);
-                                    }
-                                  }}
-                                  className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors"
-                                  title="View Transcript"
-                                >
-                                  <FileText className="w-5 h-5" />
-                                </button>
-                              )}
-                              <button
+                              <ViewDetailsButton
                                 onClick={() => router.push(`/audio/${file.id}`)}
-                                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
-                                title="Edit"
-                              >
-                                <Edit className="w-5 h-5" />
-                              </button>
+                                id={file.id}
+                                itemType="audio"
+                              />
+                              {/* Show Process button for pending or discovered files */}
+                              {(file.status === "pending" ||
+                                file.status === "discovered") && (
+                                <ProcessButton
+                                  onClick={() => handleProcess(file)}
+                                  id={file.id}
+                                  itemType="audio"
+                                />
+                              )}
+                              <ExcludeButton
+                                onClick={() => handleExclude(file)}
+                                id={`audio-${file.id}`}
+                              />
+                              {/* Hide Play/Download for discovered files (not yet fetched) */}
+                              {file.status !== "discovered" && (
+                                <>
+                                  <IconActionButton
+                                    icon={playingId === file.id ? Pause : Play}
+                                    tooltipId={`play-audio-${file.id}`}
+                                    tooltipContent={
+                                      playingId === file.id
+                                        ? "Stop <b>audio playback</b>"
+                                        : "Play or <b>pause</b> audio playback"
+                                    }
+                                    tooltipHtml
+                                    onClick={() => handlePlay(file.id)}
+                                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                                  />
+                                  <DownloadButton
+                                    onClick={() =>
+                                      handleDownload(file.id, file.fileName)
+                                    }
+                                    id={file.id}
+                                    itemType="audio"
+                                  />
+                                </>
+                              )}
+                              {/* Show Transcribe and Edit buttons only for files that are not pending or discovered */}
+                              {file.status !== "pending" &&
+                                file.status !== "discovered" && (
+                                  <>
+                                    <IconActionButton
+                                      icon={AudioLines}
+                                      tooltipId={`transcribe-audio-${file.id}`}
+                                      tooltipContent="Generate <u>audio transcription</u>"
+                                      tooltipHtml
+                                      onClick={() =>
+                                        handleOpenTranscribeModal(file.id)
+                                      }
+                                      className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300"
+                                    />
+                                    {currentTranscripts[file.id] && (
+                                      <IconActionButton
+                                        icon={FileText}
+                                        tooltipId={`view-transcript-audio-${file.id}`}
+                                        tooltipContent="View <b>transcript</b> versions"
+                                        tooltipHtml
+                                        onClick={() => {
+                                          if (showingTranscripts === file.id) {
+                                            setShowingTranscripts(null);
+                                          } else {
+                                            setShowingTranscripts(file.id);
+                                            fetchTranscriptVersions(file.id);
+                                          }
+                                        }}
+                                        className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300"
+                                      />
+                                    )}
+                                    <EditButton
+                                      onClick={() =>
+                                        router.push(`/audio/${file.id}`)
+                                      }
+                                      id={file.id}
+                                      itemType="audio"
+                                    />
+                                  </>
+                                )}
                             </>
                           )}
-                      </div>
-                    </td>
-                  </tr>
-                  {/* Expanded details row - shown only in expanded mode */}
-                  {viewMode === "expanded" && (
-                    <tr className="bg-gray-50 dark:bg-gray-800/50">
-                      <td colSpan={4} className={getPaddingClasses("body")}>
-                        <div className="grid grid-cols-3 gap-4 text-sm">
-                          <div>
-                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">
-                              Description:
-                            </span>
-                            <p className="text-gray-700 dark:text-gray-300">
-                              {file.description || "—"}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">
-                              Original URL:
-                            </span>
-                            {file.originalUrl ? (
-                              <a
-                                href={file.originalUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 dark:text-blue-400 hover:underline break-all"
-                              >
-                                {file.originalUrl}
-                              </a>
-                            ) : (
-                              <span className="text-gray-400">
-                                Manually Uploaded
+                        </div>
+                      </td>
+                    </tr>
+                    {/* Expanded details row - shown only in expanded mode */}
+                    {viewMode === "expanded" && (
+                      <tr className="bg-gray-50 dark:bg-gray-800/50">
+                        <td colSpan={4}>
+                          <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">
+                                Description:
                               </span>
-                            )}
-                          </div>
-                          <div>
-                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">
-                              Categories:
-                            </span>
-                            <div className="flex flex-wrap gap-1">
-                              {file.categories.length > 0 ? (
-                                file.categories.map((cat, idx) => (
-                                  <span
-                                    key={idx}
-                                    className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs"
-                                  >
-                                    {cat}
-                                  </span>
-                                ))
+                              <p className="text-gray-700 dark:text-gray-300">
+                                {file.description || "—"}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">
+                                Original URL:
+                              </span>
+                              {file.originalUrl ? (
+                                <a
+                                  href={file.originalUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 dark:text-blue-400 hover:underline break-all"
+                                >
+                                  {file.originalUrl}
+                                </a>
                               ) : (
-                                <span className="text-gray-400">—</span>
+                                <span className="text-gray-400">
+                                  Manually Uploaded
+                                </span>
                               )}
                             </div>
+                            <div>
+                              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">
+                                Categories:
+                              </span>
+                              <div className="flex flex-wrap gap-1">
+                                {file.categories.length > 0 ? (
+                                  file.categories.map((cat, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs"
+                                    >
+                                      {cat}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-gray-400">—</span>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                  {playingId === file.id && (
-                    <tr className="bg-gray-50 dark:bg-gray-800">
-                      <td colSpan={4} className={getPaddingClasses("body")}>
-                        <div className="flex items-center gap-4">
-                          <div className="flex-1">
-                            <AudioPlayer
-                              src={`/api/audio/${file.id}/file`}
-                              mimeType={file.mimeType}
-                              autoPlay={true}
-                              showTitle={false}
-                              onEnded={() => setPlayingId(null)}
-                              onPause={() => setPlayingId(null)}
-                              className="border-0 p-0 bg-transparent"
-                            />
-                          </div>
-                          <button
-                            onClick={() => setPlayingId(null)}
-                            className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-                            title="Close player"
-                          >
-                            <X className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                  {showingTranscripts === file.id && (
-                    <tr className="bg-gray-50 dark:bg-gray-800">
-                      <td colSpan={4} className="px-6 py-4">
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-semibold text-sm">
-                              Transcript Versions
-                            </h4>
+                        </td>
+                      </tr>
+                    )}
+                    {playingId === file.id && (
+                      <tr className="bg-gray-50 dark:bg-gray-800">
+                        <td colSpan={4}>
+                          <div className="flex items-center gap-4">
+                            <div className="flex-1">
+                              <AudioPlayer
+                                src={`/api/audio/${file.id}/file`}
+                                mimeType={file.mimeType}
+                                autoPlay={true}
+                                showTitle={false}
+                                onEnded={() => setPlayingId(null)}
+                                onPause={() => setPlayingId(null)}
+                                className="border-0 p-0 bg-transparent"
+                              />
+                            </div>
                             <button
-                              onClick={() => setShowingTranscripts(null)}
+                              onClick={() => setPlayingId(null)}
                               className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                              title="Close player"
                             >
                               <X className="w-5 h-5" />
                             </button>
                           </div>
-                          <TranscriptionTable
-                            generations={transcriptVersions[file.id] || []}
-                            currentGenerationId={
-                              currentTranscripts[file.id]?.id || null
-                            }
-                            sourceType="audio"
-                            sourceId={file.id}
-                            onSetCurrent={async (generationId) => {
-                              await handleSetCurrentTranscriptById(
-                                file.id,
-                                generationId
-                              );
-                            }}
-                            onRefresh={async () => {
-                              await fetchTranscriptVersions(file.id);
-                              await fetchAudioFiles();
-                            }}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              ))}
+                        </td>
+                      </tr>
+                    )}
+                    {showingTranscripts === file.id && (
+                      <tr className="bg-gray-50 dark:bg-gray-800">
+                        <td colSpan={4} className="px-6 py-4">
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-semibold text-sm">
+                                Transcript Versions
+                              </h4>
+                              <button
+                                onClick={() => setShowingTranscripts(null)}
+                                className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                              >
+                                <X className="w-5 h-5" />
+                              </button>
+                            </div>
+                            <TranscriptionTable
+                              generations={transcriptVersions[file.id] || []}
+                              currentGenerationId={
+                                currentTranscripts[file.id]?.id || null
+                              }
+                              sourceType="audio"
+                              sourceId={file.id}
+                              onSetCurrent={async (generationId) => {
+                                await handleSetCurrentTranscriptById(
+                                  file.id,
+                                  generationId
+                                );
+                              }}
+                              onRefresh={async () => {
+                                await fetchTranscriptVersions(file.id);
+                                await fetchAudioFiles();
+                              }}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -1748,6 +1701,41 @@ export default function AudioViewer({
           />
         </Modal>
       )}
+
+      {/* Exclude Confirmation Modal */}
+      <Modal
+        isOpen={excludeConfirmFile !== null}
+        onClose={() => setExcludeConfirmFile(null)}
+        title="Confirm Exclude"
+        maxWidth="md"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700 dark:text-gray-300">
+            Are you sure you want to exclude this file from the table?
+          </p>
+          {excludeConfirmFile && (
+            <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {decodeFileName(excludeConfirmFile.fileName)}
+              </p>
+            </div>
+          )}
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setExcludeConfirmFile(null)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmExclude}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Exclude
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { X, Loader2, CheckCircle2, ChevronDown } from 'lucide-react';
 import GenerationViewer, { AiGeneration } from './GenerationViewer';
 import ServiceSelector, { ServiceOption } from './ServiceSelector';
 import MarkdownEditor from '../MarkdownEditor';
+import Tooltip from './Tooltip';
 
 export interface GenerationPreview {
   text: string;
@@ -117,12 +118,18 @@ export default function GenerationModal({
                 {fileName}
               </p>
             </div>
-            <button
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            <Tooltip
+              id="close-generation-modal"
+              content="Close this <b>modal</b> dialog"
+              html
             >
-              <X className="w-5 h-5" />
-            </button>
+              <button
+                onClick={onClose}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </Tooltip>
           </div>
         </div>
 
@@ -167,20 +174,26 @@ export default function GenerationModal({
               />
 
               {/* Run Button */}
-              <button
-                onClick={handleRunAll}
-                disabled={!hasSelectedServices || isGenerating}
-                className="mb-4 w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              <Tooltip
+                id="run-all-generations"
+                content="Generate with all <b>selected services</b>"
+                html
               >
-                {isGenerating ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing...
-                  </span>
-                ) : (
-                  `Run ${title}`
-                )}
-              </button>
+                <button
+                  onClick={handleRunAll}
+                  disabled={!hasSelectedServices || isGenerating}
+                  className="mb-4 w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isGenerating ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processing...
+                    </span>
+                  ) : (
+                    `Run ${title}`
+                  )}
+                </button>
+              </Tooltip>
 
               {/* Results */}
               <div className="flex-1 space-y-4 overflow-y-auto">
@@ -211,22 +224,34 @@ export default function GenerationModal({
                               <span>Saved</span>
                             </div>
                           ) : (
-                            <button
-                              onClick={() => result && onSaveGeneration?.(result)}
-                              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                            <Tooltip
+                              id={`save-generation-${service.key}`}
+                              content="Save this <u>generation</u> to database"
+                              html
                             >
-                              Save
-                            </button>
+                              <button
+                                onClick={() => result && onSaveGeneration?.(result)}
+                                className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                              >
+                                Save
+                              </button>
+                            </Tooltip>
                           )
                         )}
                         {result && savedId && onSetCurrentGeneration && (
-                          <button
-                            onClick={() => onSetCurrentGeneration(savedId)}
-                            className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                            disabled={isCurrent}
+                          <Tooltip
+                            id={`set-current-generation-${service.key}`}
+                            content={isCurrent ? "This is the <b>current</b> generation" : "Set as <b>current</b> active generation"}
+                            html
                           >
-                            {isCurrent ? 'Current' : 'Set as Current'}
-                          </button>
+                            <button
+                              onClick={() => onSetCurrentGeneration(savedId)}
+                              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                              disabled={isCurrent}
+                            >
+                              {isCurrent ? 'Current' : 'Set as Current'}
+                            </button>
+                          </Tooltip>
                         )}
                       </div>
                       {result ? (

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import Navigation from "../../components/Navigation";
 import Tabs from "../../components/Tabs";
 import Breadcrumbs from "../../components/shared/Breadcrumbs";
 import type { AudioFile } from "../../lib/audio-types";
@@ -31,6 +30,7 @@ import FormTextarea from "../../components/shared/FormTextarea";
 import FormFileInput from "../../components/shared/FormFileInput";
 import FormError from "../../components/shared/FormError";
 import FormButton from "../../components/shared/FormButton";
+import Tooltip from "../../components/shared/Tooltip";
 import FormCheckbox from "../../components/shared/FormCheckbox";
 import { decodeFileName } from "../../lib/utils";
 import PeopleTab from "../../components/entities/PeopleTab";
@@ -1014,6 +1014,11 @@ export default function AudioDetailPage() {
           )}
         </div>
         <div className="flex gap-2 flex-shrink-0">
+          <Tooltip
+            id="download-audio-detail"
+            content="Download <b>audio file</b> to your device"
+            html
+          >
           <FormButton
             onClick={handleDownload}
             variant="success"
@@ -1022,6 +1027,12 @@ export default function AudioDetailPage() {
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Download</span>
           </FormButton>
+          </Tooltip>
+          <Tooltip
+            id="edit-audio-detail"
+            content="Edit audio <b>metadata</b> and details"
+            html
+          >
           <FormButton
             onClick={handleOpenEditModal}
             variant="primary"
@@ -1030,6 +1041,12 @@ export default function AudioDetailPage() {
             <Edit className="w-4 h-4" />
             <span className="hidden sm:inline">Edit</span>
           </FormButton>
+          </Tooltip>
+          <Tooltip
+            id="transcribe-audio-detail"
+            content="Generate <u>audio transcription</u>"
+            html
+          >
           <FormButton
             onClick={handleOpenTranscribeModal}
             variant="purple"
@@ -1038,6 +1055,7 @@ export default function AudioDetailPage() {
             <AudioLines className="w-4 h-4" />
             <span className="hidden sm:inline">Transcribe</span>
           </FormButton>
+          </Tooltip>
         </div>
       </div>
 
@@ -1202,16 +1220,32 @@ export default function AudioDetailPage() {
         )}
 
         {activeTab === "people" && (
-          <PeopleTab content={currentTranscript?.text_content || null} />
+          <PeopleTab 
+            content={currentTranscript?.text_content || null}
+            sourceType="audio"
+            sourceId={id}
+          />
         )}
         {activeTab === "locations" && (
-          <LocationsTab content={currentTranscript?.text_content || null} />
+          <LocationsTab 
+            content={currentTranscript?.text_content || null}
+            sourceType="audio"
+            sourceId={id}
+          />
         )}
         {activeTab === "companies" && (
-          <CompaniesTab content={currentTranscript?.text_content || null} />
+          <CompaniesTab 
+            content={currentTranscript?.text_content || null}
+            sourceType="audio"
+            sourceId={id}
+          />
         )}
         {activeTab === "programs" && (
-          <ProgramsTab content={currentTranscript?.text_content || null} />
+          <ProgramsTab 
+            content={currentTranscript?.text_content || null}
+            sourceType="audio"
+            sourceId={id}
+          />
         )}
       </Tabs>
 

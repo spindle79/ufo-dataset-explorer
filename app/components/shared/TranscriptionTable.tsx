@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { AiGeneration } from "./GenerationViewer";
 import DiffViewer from "./DiffViewer";
+import Tooltip from "./Tooltip";
+import ViewModeToggle, { ViewMode as ViewModeType } from "./ViewModeToggle";
 import {
   Check,
   Star,
@@ -10,12 +12,10 @@ import {
   Eye,
   X,
   FileText,
-  List,
-  LayoutGrid,
   Maximize2,
 } from "lucide-react";
 
-export type ViewMode = "condensed" | "normal" | "expanded";
+export type ViewMode = ViewModeType;
 
 interface TranscriptionTableProps {
   generations: AiGeneration[];
@@ -142,17 +142,6 @@ export default function TranscriptionTable({
     );
   };
 
-  // Get padding classes based on view mode
-  const getPaddingClasses = (type: "header" | "body"): string => {
-    switch (viewMode) {
-      case "condensed":
-        return type === "header" ? "px-2 py-1.5" : "px-2 py-1.5";
-      case "normal":
-        return type === "header" ? "px-4 py-3" : "px-4 py-3";
-      case "expanded":
-        return type === "header" ? "px-6 py-4" : "px-6 py-4";
-    }
-  };
 
   const toggleExpanded = (generationId: string) => {
     setExpandedRows((prev) => {
@@ -182,55 +171,21 @@ export default function TranscriptionTable({
       {/* View Mode Toggle */}
       {enableViewModeToggle && (
         <div className="flex items-center justify-end">
-          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode("condensed")}
-              className={`p-1.5 rounded transition-colors ${
-                viewMode === "condensed"
-                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-              }`}
-              title="Condensed View"
-            >
-              <List className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("normal")}
-              className={`p-1.5 rounded transition-colors ${
-                viewMode === "normal"
-                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-              }`}
-              title="Normal View"
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("expanded")}
-              className={`p-1.5 rounded transition-colors ${
-                viewMode === "expanded"
-                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-              }`}
-              title="Expanded View"
-            >
-              <Maximize2 className="w-4 h-4" />
-            </button>
-          </div>
+          <ViewModeToggle
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            idPrefix="view-mode-transcription"
+          />
         </div>
       )}
 
       {/* Table */}
       <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full" data-view-mode={viewMode} data-table-type="transcription">
             <thead className="bg-gray-100 dark:bg-gray-800">
               <tr>
-                <th
-                  className={`${getPaddingClasses(
-                    "header"
-                  )} text-left text-xs font-medium text-gray-700 dark:text-gray-300 w-12`}
-                >
+                <th className="text-left text-xs font-medium text-gray-700 dark:text-gray-300 w-12">
                   <input
                     type="checkbox"
                     checked={
@@ -256,41 +211,21 @@ export default function TranscriptionTable({
                     className="rounded border-gray-300 dark:border-gray-600"
                   />
                 </th>
-                <th
-                  className={`${getPaddingClasses(
-                    "header"
-                  )} text-left text-xs font-medium text-gray-700 dark:text-gray-300`}
-                >
+                <th className="text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                   Date
                 </th>
-                <th
-                  className={`${getPaddingClasses(
-                    "header"
-                  )} text-left text-xs font-medium text-gray-700 dark:text-gray-300`}
-                >
+                <th className="text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                   Service
                 </th>
-                <th
-                  className={`${getPaddingClasses(
-                    "header"
-                  )} text-left text-xs font-medium text-gray-700 dark:text-gray-300`}
-                >
+                <th className="text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                   Version
                 </th>
                 {(viewMode === "normal" || viewMode === "expanded") && (
-                  <th
-                    className={`${getPaddingClasses(
-                      "header"
-                    )} text-left text-xs font-medium text-gray-700 dark:text-gray-300`}
-                  >
+                  <th className="text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                     Preview
                   </th>
                 )}
-                <th
-                  className={`${getPaddingClasses(
-                    "header"
-                  )} text-center text-xs font-medium text-gray-700 dark:text-gray-300 w-32`}
-                >
+                <th className="text-center text-xs font-medium text-gray-700 dark:text-gray-300 w-32">
                   Actions
                 </th>
               </tr>
@@ -316,7 +251,7 @@ export default function TranscriptionTable({
                         isCurrent ? "bg-blue-50 dark:bg-blue-900/20" : ""
                       } ${isSelected ? "ring-2 ring-blue-500" : ""}`}
                     >
-                      <td className={getPaddingClasses("body")}>
+                      <td>
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -325,23 +260,15 @@ export default function TranscriptionTable({
                           className="rounded border-gray-300 dark:border-gray-600"
                         />
                       </td>
-                      <td
-                        className={`${getPaddingClasses(
-                          "body"
-                        )} text-sm text-gray-900 dark:text-gray-100`}
-                      >
+                      <td className="text-sm text-gray-900 dark:text-gray-100">
                         {new Date(gen.created_at).toLocaleString()}
                       </td>
-                      <td className={getPaddingClasses("body")}>
+                      <td>
                         <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded text-xs capitalize">
                           {getServiceName(gen)}
                         </span>
                       </td>
-                      <td
-                        className={`${getPaddingClasses(
-                          "body"
-                        )} text-sm text-gray-900 dark:text-gray-100`}
-                      >
+                      <td className="text-sm text-gray-900 dark:text-gray-100">
                         {gen.version}
                         {isCurrent && (
                           <span className="ml-2 px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded text-xs">
@@ -350,61 +277,77 @@ export default function TranscriptionTable({
                         )}
                       </td>
                       {(viewMode === "normal" || viewMode === "expanded") && (
-                        <td
-                          className={`${getPaddingClasses(
-                            "body"
-                          )} text-sm text-gray-600 dark:text-gray-400 max-w-md truncate`}
-                        >
+                        <td className="text-sm text-gray-600 dark:text-gray-400 max-w-md truncate">
                           {preview}
                           {gen.text_content &&
                             gen.text_content.length > 100 &&
                             "..."}
                         </td>
                       )}
-                      <td className={getPaddingClasses("body")}>
+                      <td>
                         <div className="flex items-center justify-center gap-2">
                           {!isCurrent && (
-                            <button
-                              onClick={() => handleSetCurrent(gen.id)}
-                              disabled={isSettingCurrent}
-                              className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded transition-colors disabled:opacity-50"
-                              title="Make Current"
+                            <Tooltip
+                              id={`set-current-${gen.id}`}
+                              content="Set as <b>current</b> active transcription"
+                              html
                             >
-                              {isSettingCurrent ? (
-                                <Star className="w-4 h-4 animate-pulse" />
-                              ) : (
-                                <Star className="w-4 h-4" />
-                              )}
-                            </button>
+                              <button
+                                onClick={() => handleSetCurrent(gen.id)}
+                                disabled={isSettingCurrent}
+                                className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded transition-colors disabled:opacity-50"
+                              >
+                                {isSettingCurrent ? (
+                                  <Star className="w-4 h-4 animate-pulse" />
+                                ) : (
+                                  <Star className="w-4 h-4" />
+                                )}
+                              </button>
+                            </Tooltip>
                           )}
-                          <button
-                            onClick={() => handleDownload(gen)}
-                            className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
-                            title="Download"
+                          <Tooltip
+                            id={`download-transcription-${gen.id}`}
+                            content="Download transcription as <b>text file</b>"
+                            html
                           >
-                            <Download className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() =>
-                              setViewingId(viewingId === gen.id ? null : gen.id)
-                            }
-                            className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
-                            title="View"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          {showExpandedContent && (
                             <button
-                              onClick={() => toggleExpanded(gen.id)}
+                              onClick={() => handleDownload(gen)}
                               className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
-                              title={isExpanded ? "Collapse" : "Expand"}
                             >
-                              {isExpanded ? (
-                                <X className="w-4 h-4" />
-                              ) : (
-                                <Maximize2 className="w-4 h-4" />
-                              )}
+                              <Download className="w-4 h-4" />
                             </button>
+                          </Tooltip>
+                          <Tooltip
+                            id={`view-transcription-${gen.id}`}
+                            content="View <b>full</b> transcription"
+                            html
+                          >
+                            <button
+                              onClick={() =>
+                                setViewingId(viewingId === gen.id ? null : gen.id)
+                              }
+                              className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                          </Tooltip>
+                          {showExpandedContent && (
+                            <Tooltip
+                              id={`expand-transcription-${gen.id}`}
+                              content={isExpanded ? "Collapse <b>expanded</b> view" : "Expand or <u>collapse</u> full text"}
+                              html
+                            >
+                              <button
+                                onClick={() => toggleExpanded(gen.id)}
+                                className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                              >
+                                {isExpanded ? (
+                                  <X className="w-4 h-4" />
+                                ) : (
+                                  <Maximize2 className="w-4 h-4" />
+                                )}
+                              </button>
+                            </Tooltip>
                           )}
                         </div>
                       </td>
@@ -412,10 +355,7 @@ export default function TranscriptionTable({
                     {/* Expanded content row */}
                     {showExpandedContent && isExpanded && (
                       <tr className="bg-gray-50 dark:bg-gray-800/50">
-                        <td
-                          colSpan={colSpan}
-                          className={getPaddingClasses("body")}
-                        >
+                        <td colSpan={colSpan}>
                           <div className="space-y-2">
                             {renderExpandedContent(gen)}
                           </div>

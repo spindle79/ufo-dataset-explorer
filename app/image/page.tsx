@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Navigation from "../components/Navigation";
+import Breadcrumbs from "../components/shared/Breadcrumbs";
 import Tabs from "../components/Tabs";
 import FileUploadTab from "../components/image/FileUploadTab";
 import UrlUploadTab from "../components/image/UrlUploadTab";
@@ -13,6 +13,7 @@ import {
   Upload,
   Link as LinkIcon,
   FileSpreadsheet,
+  Image as ImageIcon,
 } from "lucide-react";
 
 export default function ImagePage() {
@@ -48,7 +49,15 @@ export default function ImagePage() {
   return (
     <main className="min-h-screen p-8 min-w-screen">
       <div>
-        <Navigation showBackButton={true} />
+        <Breadcrumbs
+          items={[
+            {
+              label: "Image",
+              icon: <ImageIcon className="w-4 h-4" />,
+            },
+          ]}
+          className="mb-4"
+        />
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4">Image Upload Tool</h1>
           <p className="text-lg text-gray-600 dark:text-gray-400">

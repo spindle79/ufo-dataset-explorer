@@ -52,7 +52,8 @@ export async function extractWithOpenAI(
         ],
       },
     ],
-    temperature: 0,
+    // Note: Some models only support default temperature (1)
+    // Removed temperature: 0 as it's not supported by all models
     // max_output_tokens: 8000, // optionally cap output
     // store: false, // optionally disable storage
   });

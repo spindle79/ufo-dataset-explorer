@@ -8,6 +8,103 @@ import TurndownService from "turndown";
 import { PageContent } from "./scrape-types";
 
 /**
+ * Resolve a relative URL to an absolute URL
+ */
+function resolveUrl(baseUrl: string, relativeUrl: string): string | null {
+  try {
+    // If it's already absolute, return as-is
+    if (
+      relativeUrl.startsWith("http://") ||
+      relativeUrl.startsWith("https://")
+    ) {
+      return relativeUrl;
+    }
+
+    // Handle protocol-relative URLs (starting with //)
+    if (relativeUrl.startsWith("//")) {
+      const base = new URL(baseUrl);
+      return `${base.protocol}${relativeUrl}`;
+    }
+
+    // If it's a data URL, return as-is
+    if (relativeUrl.startsWith("data:")) {
+      return null; // Skip data URLs
+    }
+
+    // Resolve relative URL
+    const base = new URL(baseUrl);
+    const resolved = new URL(relativeUrl, base);
+    return resolved.href;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve all relative URLs in HTML to absolute URLs
+ */
+function resolveUrlsInHtml(
+  $: cheerio.CheerioAPI,
+  element: cheerio.Cheerio<cheerio.Element>,
+  baseUrl: string
+): void {
+  // Attributes that may contain URLs
+  const urlAttributes = [
+    "href",
+    "src",
+    "data",
+    "action",
+    "formaction",
+    "cite",
+    "poster",
+    "background",
+  ];
+
+  element.find("*").each((_, el) => {
+    const $el = $(el);
+    const tagName = el.tagName?.toLowerCase();
+
+    // Process each URL attribute
+    urlAttributes.forEach((attr) => {
+      const url = $el.attr(attr);
+      if (url) {
+        const resolved = resolveUrl(baseUrl, url);
+        if (resolved) {
+          $el.attr(attr, resolved);
+        }
+      }
+    });
+
+    // Also check style attribute for url() references
+    const style = $el.attr("style");
+    if (style) {
+      // Match url(...) patterns in CSS
+      const updatedStyle = style.replace(
+        /url\((['"]?)([^'")]+)\1\)/gi,
+        (match, quote, url) => {
+          const resolved = resolveUrl(baseUrl, url.trim());
+          return resolved ? `url(${quote}${resolved}${quote})` : match;
+        }
+      );
+      if (updatedStyle !== style) {
+        $el.attr("style", updatedStyle);
+      }
+    }
+  });
+
+  // Also process the root element itself
+  urlAttributes.forEach((attr) => {
+    const url = element.attr(attr);
+    if (url) {
+      const resolved = resolveUrl(baseUrl, url);
+      if (resolved) {
+        element.attr(attr, resolved);
+      }
+    }
+  });
+}
+
+/**
  * Remove class and data attributes from an element (Cheerio version)
  */
 const removeClassesAndDataAttributes = (
@@ -112,12 +209,40 @@ const cleanHtml = (
     $cloned.find(selector).remove();
   });
 
-  // Remove empty elements
+  // Remove empty elements (but preserve media elements and links to media)
   $cloned.find("*").each((_, el) => {
     const $el = $(el);
     const text = $el.text().trim();
     const tagName = el.tagName?.toLowerCase();
-    if (text === "" && !["img", "br", "hr"].includes(tagName || "")) {
+
+    // Always preserve these elements
+    if (
+      [
+        "img",
+        "br",
+        "hr",
+        "audio",
+        "video",
+        "source",
+        "object",
+        "embed",
+      ].includes(tagName || "")
+    ) {
+      return;
+    }
+
+    // Preserve links (a tags) - they might link to media files
+    if (tagName === "a" && $el.attr("href")) {
+      return;
+    }
+
+    // Preserve elements that contain media elements
+    if ($el.find("img, audio, video, source, object, embed").length > 0) {
+      return;
+    }
+
+    // Remove empty elements
+    if (text === "") {
       $el.remove();
     }
   });
@@ -240,6 +365,18 @@ export function processHtmlSnippet(
     const cleanedHtmlEl = cleanHtml($, mainElement);
     removeClassesAndDataAttributes($, cleanedHtmlEl);
 
+    // Use a data URL or placeholder URL for HTML snippets
+    const url =
+      sourceUrl ||
+      `data:text/html;base64,${Buffer.from(html)
+        .toString("base64")
+        .substring(0, 100)}`;
+
+    // Resolve all relative URLs to absolute URLs (if we have a source URL)
+    if (sourceUrl) {
+      resolveUrlsInHtml($, cleanedHtmlEl, sourceUrl);
+    }
+
     // Initialize Turndown service
     const turndownService = createTurndownService();
 
@@ -257,13 +394,6 @@ export function processHtmlSnippet(
         recommendation: "This HTML content is unusually large",
       });
     }
-
-    // Use a data URL or placeholder URL for HTML snippets
-    const url =
-      sourceUrl ||
-      `data:text/html;base64,${Buffer.from(html)
-        .toString("base64")
-        .substring(0, 100)}`;
 
     return {
       markdown: pageMarkdown || DEFAULT_PAGE_TEXT,
@@ -318,6 +448,9 @@ export async function scrapePage(url: string): Promise<PageContent> {
     // Clean the HTML
     const cleanedHtmlEl = cleanHtml($, mainElement);
     removeClassesAndDataAttributes($, cleanedHtmlEl);
+
+    // Resolve all relative URLs to absolute URLs
+    resolveUrlsInHtml($, cleanedHtmlEl, url);
 
     // Initialize Turndown service
     const turndownService = createTurndownService();

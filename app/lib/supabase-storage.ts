@@ -106,7 +106,10 @@ export async function uploadFile(
     });
 
   if (error) {
-    throw new Error(`Failed to upload file: ${error.message}`);
+    const errorMessage = getErrorMessage(error);
+    throw new Error(
+      `Failed to upload file to bucket "${bucketName}" at path "${filePath}": ${errorMessage}`
+    );
   }
 
   // Get public URL
@@ -190,10 +193,32 @@ export async function getSignedUrl(
     .createSignedUrl(filePath, expiresIn);
 
   if (error) {
-    throw new Error(`Failed to create signed URL: ${error.message}`);
+    const errorMessage = getErrorMessage(error);
+    throw new Error(
+      `Failed to create signed URL for bucket "${bucketName}" at path "${filePath}": ${errorMessage}`
+    );
   }
 
   return data.signedUrl;
+}
+
+/**
+ * Safely extract error message from Supabase error object
+ */
+function getErrorMessage(error: any): string {
+  if (typeof error?.message === "string") {
+    return error.message;
+  }
+  if (error?.message && typeof error.message === "object") {
+    return JSON.stringify(error.message);
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  if (error && typeof error === "object") {
+    return JSON.stringify(error);
+  }
+  return "Unknown error";
 }
 
 /**
@@ -216,7 +241,10 @@ export async function downloadFile(
     .download(filePath);
 
   if (error) {
-    throw new Error(`Failed to download file: ${error.message}`);
+    const errorMessage = getErrorMessage(error);
+    throw new Error(
+      `Failed to download file from bucket "${bucketName}" at path "${filePath}": ${errorMessage}`
+    );
   }
 
   return data;
@@ -239,7 +267,10 @@ export async function deleteFile(
   const { error } = await supabase.storage.from(bucketName).remove([filePath]);
 
   if (error) {
-    throw new Error(`Failed to delete file: ${error.message}`);
+    const errorMessage = getErrorMessage(error);
+    throw new Error(
+      `Failed to delete file from bucket "${bucketName}" at path "${filePath}": ${errorMessage}`
+    );
   }
 }
 
@@ -272,7 +303,10 @@ export async function listFiles(
     .list(folderPath);
 
   if (error) {
-    throw new Error(`Failed to list files: ${error.message}`);
+    const errorMessage = getErrorMessage(error);
+    throw new Error(
+      `Failed to list files in bucket "${bucketName}"${folderPath ? ` at path "${folderPath}"` : ""}: ${errorMessage}`
+    );
   }
 
   return data || [];
@@ -340,7 +374,10 @@ export async function getFileMetadata(
     .list(folderPath || "");
 
   if (error) {
-    throw new Error(`Failed to get file metadata: ${error.message}`);
+    const errorMessage = getErrorMessage(error);
+    throw new Error(
+      `Failed to get file metadata from bucket "${bucketName}" at path "${filePath}": ${errorMessage}`
+    );
   }
 
   const file = data?.find((f) => f.name === fileName);

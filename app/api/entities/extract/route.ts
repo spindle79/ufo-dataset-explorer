@@ -7,7 +7,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { extractEntities } from "@/lib/entity-extraction";
+import { extractEntitiesEnhanced } from "@/lib/entity-extraction/enhanced";
+import { extractRelationships } from "@/lib/entity-extraction/relationships";
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,12 +29,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Extract entities using GPT-5-nano
-    const entities = await extractEntities(content, model || "gpt-5-nano");
+    // Extract entities using enhanced pipeline (model is optional, uses default from config)
+    const entities = await extractEntitiesEnhanced(content, model);
+
+    // Extract relationships (model is optional, uses default from config)
+    const relationships = await extractRelationships(
+      content,
+      {
+        people: entities.people,
+        locations: entities.locations,
+        companies: entities.companies,
+        programs: entities.programs,
+      },
+      model
+    );
 
     return NextResponse.json({
       success: true,
-      entities,
+      entities: {
+        ...entities,
+        relationships,
+      },
     });
   } catch (error) {
     console.error("Error in entity extraction API:", error);
