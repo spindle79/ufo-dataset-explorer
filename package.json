@@ -36,7 +36,8 @@
     "supabase:stop": "docker-compose down",
     "supabase:restart": "docker-compose restart",
     "supabase:logs": "docker-compose logs -f",
-    "supabase:status": "docker-compose ps"
+    "supabase:status": "docker-compose ps",
+    "prepare": "husky"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
@@ -87,9 +88,15 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.12",
+    "prettier": "^3.4.2"
   },
   "engines": {
     "node": ">=24.0.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,mjs,cjs,json,md,yaml,yml,css,html}": "prettier --write"
   }
 }
